@@ -4,8 +4,7 @@ module PrivatePub
   class Engine < Rails::Engine
     # Loads the private_pub.yml file if it exists.
     initializer "private_pub.config" do
-      path = Rails.root.join("config/private_pub.yml")
-      PrivatePub.load_config(path, Rails.env) if path.exist?
+      require 'private_pub/load_config'
     end
 
     # Adds the ViewHelpers into ActionView::Base

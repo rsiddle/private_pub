@@ -1,4 +1,4 @@
-require "digest/sha1"
+require "openssl"
 require "net/http"
 require "net/https"
 
@@ -49,9 +49,10 @@ module PrivatePub
     # Returns a subscription hash to pass to the PrivatePub.sign call in JavaScript.
     # Any options passed are merged to the hash.
     def subscription(options = {})
-      sub = {:server => config[:server], :timestamp => (Time.now.to_f * 1000).round}.merge(options)
-      sub[:signature] = Digest::SHA1.hexdigest([config[:secret_token], sub[:channel], sub[:timestamp]].join)
-      sub
+      {:server => config[:server], :timestamp => (Time.now.to_f * 1000).round}.merge(options).tap do |sub|
+        digest = OpenSSL::Digest.new('sha1')
+        sub[:signature] = OpenSSL::HMAC.hexdigest(digest, config[:secret_token], [sub[:channel], sub[:timestamp]].join)
+      end
     end
 
     # Determine if the signature has expired given a timestamp.

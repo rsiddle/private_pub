@@ -1,8 +1,12 @@
 require "spec_helper"
 
 describe PrivatePub do
+
+  let(:token) { 'token' }
+
   before(:each) do
     PrivatePub.reset_config
+    PrivatePub.config[:secret_token] = token
   end
 
   it "defaults server to nil" do
@@ -27,16 +31,18 @@ describe PrivatePub do
     subscription[:server].should eq("server")
   end
 
-  it "does a sha1 digest of channel, timestamp, and secret token" do
-    PrivatePub.config[:secret_token] = "token"
+  it "generates an hmac of channel, timestamp using secret token" do
     subscription = PrivatePub.subscription(:timestamp => 123, :channel => "channel")
-    subscription[:signature].should eq(Digest::SHA1.hexdigest("tokenchannel123"))
+    digest = OpenSSL::Digest.new('sha1')
+
+    expected_signature = OpenSSL::HMAC.hexdigest(digest, token, "channel123")
+
+    subscription[:signature].should eq(expected_signature)
   end
 
   it "formats a message hash given a channel and a string for eval" do
-    PrivatePub.config[:secret_token] = "token"
     PrivatePub.message("chan", "foo").should eq(
-      :ext => {:private_pub_token => "token"},
+      :ext => {:private_pub_token => token},
       :channel => "chan",
       :data => {
         :channel => "chan",
@@ -46,9 +52,8 @@ describe PrivatePub do
   end
 
   it "formats a message hash given a channel and a hash" do
-    PrivatePub.config[:secret_token] = "token"
     PrivatePub.message("chan", :foo => "bar").should eq(
-      :ext => {:private_pub_token => "token"},
+      :ext => {:private_pub_token => token},
       :channel => "chan",
       :data => {
         :channel => "chan",

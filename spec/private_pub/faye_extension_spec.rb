@@ -1,8 +1,12 @@
 require "spec_helper"
 
 describe PrivatePub::FayeExtension do
+
+  let(:token) { 'token' }
+
   before(:each) do
     PrivatePub.reset_config
+    PrivatePub.config[:secret_token] = token
     @faye = PrivatePub::FayeExtension.new
     @message = {"channel" => "/meta/subscribe", "ext" => {}}
   end
@@ -43,6 +47,7 @@ describe PrivatePub::FayeExtension do
   end
 
   it "raises an exception when attempting to call a custom channel without a secret_token set" do
+    PrivatePub.config[:secret_token] = nil
     @message["channel"] = "/custom/channel"
     @message["ext"]["private_pub_token"] = "bad"
     lambda {

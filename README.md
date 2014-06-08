@@ -81,11 +81,11 @@ The Ruby `subscribe_to` helper call is still necessary with this approach to gra
 
 ## Configuration
 
-The configuration is set separately for each environment in the generated `config/private_pub.yml` file. Here are the options.
+The configuration is set via environment variables:
 
-* `server`: The URL to use for the Faye server such as `http://localhost:9292/faye`.
-* `secret_token`: A secret hash to secure the server. Can be any string.
-* `signature_expiration`: The length of time in seconds before a subscription signature expires. If this is not set there is no expiration. Note: if Faye is on a separate server from the Rails app, the system clocks must be in sync for the expiration to work properly.
+* `PRIVATE_PUB_SERVER`: The URL to use for the Faye server such as `http://localhost:9292/faye`.
+* `PRIVATE_PUB_SECRET_TOKEN`: A secret hash to secure the server. Can be any string.
+* `PRIVATE_PUB_EXPIRES`: The length of time in seconds before a subscription signature expires. If this is not set there is no expiration. Note: if Faye is on a separate server from the Rails app, the system clocks must be in sync for the expiration to work properly.
 
 
 ## How It Works
@@ -135,8 +135,13 @@ thin -C config/private_pub_thin.yml start
 
 ##  Project Status
 
-Unfortunately I have not had time to actively work on this project recently. If you find a critical issue where it does not work as documented please [ping me on Twitter](http://twitter.com/rbates) and I'll take a look.
+This is a fork of the original private_pub by Ryan Baits
 
+### Changes from the original
+
+* Changed configuration from using yaml file to environment variables.
+  This stops you committing your secret token to your git repository.
+* Changed to using HMAC for generating the signature, to prevent extension attacks.
 
 ## Development & Feedback
 

@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'faye'
 
   s.add_development_dependency 'rake'
-  s.add_development_dependency 'rspec', '~> 2.8.0'
+  s.add_development_dependency 'rspec', '~> 3'
   s.add_development_dependency 'jasmine', '>= 1.1.1'
 
   s.rubyforge_project = s.name

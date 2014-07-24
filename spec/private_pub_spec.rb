@@ -1,4 +1,4 @@
-require "spec_helper"
+require 'spec_helper'
 
 describe PrivatePub do
 
@@ -9,125 +9,125 @@ describe PrivatePub do
     PrivatePub.config[:secret_token] = token
   end
 
-  it "defaults server to nil" do
-    PrivatePub.config[:server].should be_nil
+  it 'defaults server to nil' do
+    expect(PrivatePub.config[:server]).to be_nil
   end
 
-  it "defaults signature_expiration to nil" do
-    PrivatePub.config[:signature_expiration].should be_nil
+  it 'defaults signature_expiration to nil' do
+    expect(PrivatePub.config[:signature_expiration]).to be_nil
   end
 
-  it "defaults subscription timestamp to current time in milliseconds" do
+  it 'defaults subscription timestamp to current time in milliseconds' do
     time = Time.now
-    Time.stub!(:now).and_return(time)
-    PrivatePub.subscription[:timestamp].should eq((time.to_f * 1000).round)
+    allow(Time).to receive(:now).and_return(time)
+    expect(PrivatePub.subscription[:timestamp]).to eq((time.to_f * 1000).round)
   end
 
-  it "includes channel, server, and custom time in subscription" do
-    PrivatePub.config[:server] = "server"
-    subscription = PrivatePub.subscription(:timestamp => 123, :channel => "hello")
-    subscription[:timestamp].should eq(123)
-    subscription[:channel].should eq("hello")
-    subscription[:server].should eq("server")
+  it 'includes channel, server, and custom time in subscription' do
+    PrivatePub.config[:server] = 'server'
+    subscription = PrivatePub.subscription(timestamp: 123, channel: 'hello')
+    expect(subscription[:timestamp]).to eq(123)
+    expect(subscription[:channel]).to eq('hello')
+    expect(subscription[:server]).to eq('server')
   end
 
-  it "generates an hmac of channel, timestamp using secret token" do
-    subscription = PrivatePub.subscription(:timestamp => 123, :channel => "channel")
+  it 'generates an hmac of channel, timestamp using secret token' do
+    subscription = PrivatePub.subscription(timestamp: 123, channel: 'channel')
     digest = OpenSSL::Digest.new('sha1')
 
-    expected_signature = OpenSSL::HMAC.hexdigest(digest, token, "channel123")
+    expected_signature = OpenSSL::HMAC.hexdigest(digest, token, 'channel123')
 
-    subscription[:signature].should eq(expected_signature)
+    expect(subscription[:signature]).to eq(expected_signature)
   end
 
-  it "formats a message hash given a channel and a string for eval" do
-    PrivatePub.message("chan", "foo").should eq(
-      :ext => {:private_pub_token => token},
-      :channel => "chan",
-      :data => {
-        :channel => "chan",
-        :eval => "foo"
+  it 'formats a message hash given a channel and a string for eval' do
+    expect(PrivatePub.message('chan', 'foo')).to eq(
+      ext: { private_pub_token: token },
+      channel: 'chan',
+      data: {
+        channel: 'chan',
+        eval: 'foo'
       }
     )
   end
 
-  it "formats a message hash given a channel and a hash" do
-    PrivatePub.message("chan", :foo => "bar").should eq(
-      :ext => {:private_pub_token => token},
-      :channel => "chan",
-      :data => {
-        :channel => "chan",
-        :data => {:foo => "bar"}
+  it 'formats a message hash given a channel and a hash' do
+    expect(PrivatePub.message('chan', foo: 'bar')).to eq(
+      ext: { private_pub_token: token },
+      channel: 'chan',
+      data: {
+        channel: 'chan',
+        data: {foo: 'bar'}
       }
     )
   end
 
-  it "publish message as json to server using Net::HTTP" do
-    PrivatePub.config[:server] = "http://localhost"
+  it 'publish message as json to server using Net::HTTP' do
+    PrivatePub.config[:server] = 'http://localhost'
     message = 'foo'
-    form = mock(:post).as_null_object
-    http = mock(:http).as_null_object
+    form = double(:post).as_null_object
+    http = double(:http).as_null_object
 
-    Net::HTTP::Post.should_receive(:new).with('/').and_return(form)
-    form.should_receive(:set_form_data).with(message: 'foo'.to_json)
+    expect(Net::HTTP::Post).to receive(:new).with('/').and_return(form)
+    expect(form).to receive(:set_form_data).with(message: 'foo'.to_json)
 
-    Net::HTTP.should_receive(:new).with('localhost', 80).and_return(http)
-    http.should_receive(:start).and_yield(http)
-    http.should_receive(:request).with(form).and_return(:result)
+    expect(Net::HTTP).to receive(:new).with('localhost', 80).and_return(http)
+    expect(http).to receive(:start).and_yield(http)
+    expect(http).to receive(:request).with(form).and_return(:result)
 
-    PrivatePub.publish_message(message).should eq(:result)
+    expect(PrivatePub.publish_message(message)).to eq(:result)
   end
 
-  it "it should use HTTPS if the server URL says so" do
-    PrivatePub.config[:server] = "https://localhost"
-    http = mock(:http).as_null_object
+  it 'it should use HTTPS if the server URL says so' do
+    PrivatePub.config[:server] = 'https://localhost'
+    http = double(:http).as_null_object
 
-    Net::HTTP.should_receive(:new).and_return(http)
-    http.should_receive(:use_ssl=).with(true)
+    expect(Net::HTTP).to receive(:new).and_return(http)
+    expect(http).to receive(:use_ssl=).with(true)
 
     PrivatePub.publish_message('foo')
   end
 
-  it "it should not use HTTPS if the server URL says not to" do
-    PrivatePub.config[:server] = "http://localhost"
-    http = mock(:http).as_null_object
+  it 'it should not use HTTPS if the server URL says not to' do
+    PrivatePub.config[:server] = 'http://localhost'
+    http = double(:http).as_null_object
 
-    Net::HTTP.should_receive(:new).and_return(http)
-    http.should_receive(:use_ssl=).with(false)
+    expect(Net::HTTP).to receive(:new).and_return(http)
+    expect(http).to receive(:use_ssl=).with(false)
 
     PrivatePub.publish_message('foo')
   end
 
-  it "raises an exception if no server is specified when calling publish_message" do
-    lambda {
-      PrivatePub.publish_message("foo")
-    }.should raise_error(PrivatePub::Error)
+  it 'raises an exception if no server is specified when calling publish_message' do
+    expect {
+      PrivatePub.publish_message('foo')
+    }.to raise_error(PrivatePub::Error)
   end
 
-  it "publish_to passes message to publish_message call" do
-    PrivatePub.should_receive(:message).with("chan", "foo").and_return("message")
-    PrivatePub.should_receive(:publish_message).with("message").and_return(:result)
-    PrivatePub.publish_to("chan", "foo").should eq(:result)
+  it 'publish_to passes message to publish_message call' do
+    expect(PrivatePub).to receive(:message).with('chan', 'foo').and_return('message')
+    expect(PrivatePub).to receive(:publish_message).with('message').and_return(:result)
+    expect(PrivatePub.publish_to('chan', 'foo')).to eq(:result)
   end
 
-  it "has a Faye rack app instance" do
-    PrivatePub.faye_app.should be_kind_of(Faye::RackAdapter)
+  it 'has a Faye rack app instance' do
+    expect(PrivatePub.faye_app).to be_kind_of(Faye::RackAdapter)
   end
 
-  it "says signature has expired when time passed in is greater than expiration" do
+  it 'says signature has expired when time passed in is greater than expiration' do
     PrivatePub.config[:signature_expiration] = 30*60
     time = PrivatePub.subscription[:timestamp] - 31*60*1000
-    PrivatePub.signature_expired?(time).should be_true
+    expect(PrivatePub.signature_expired?(time)).to be_truthy
   end
 
-  it "says signature has not expired when time passed in is less than expiration" do
+  it 'says signature has not expired when time passed in is less than expiration' do
     PrivatePub.config[:signature_expiration] = 30*60
     time = PrivatePub.subscription[:timestamp] - 29*60*1000
-    PrivatePub.signature_expired?(time).should be_false
+    expect(PrivatePub.signature_expired?(time)).to be_falsey
   end
 
-  it "says signature has not expired when expiration is nil" do
+  it 'says signature has not expired when expiration is nil' do
     PrivatePub.config[:signature_expiration] = nil
-    PrivatePub.signature_expired?(0).should be_false
+    expect(PrivatePub.signature_expired?(0)).to be_falsey
   end
 end

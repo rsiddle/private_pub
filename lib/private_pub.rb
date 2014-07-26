@@ -15,6 +15,9 @@ require 'private_pub/signature'
 
 require 'private_pub/token_validator'
 require 'private_pub/token_message'
+
+require 'private_pub/null_validator'
+
 require 'private_pub/engine' if defined? Rails
 
 module PrivatePub

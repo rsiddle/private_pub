@@ -5,8 +5,7 @@ describe PrivatePub do
   let(:token) { 'token' }
 
   before(:each) do
-    PrivatePub.reset_config
-    PrivatePub.config[:secret_token] = token
+    stub_config(secret_token: token)
   end
 
   it 'defaults server to nil' do
@@ -15,29 +14,6 @@ describe PrivatePub do
 
   it 'defaults signature_expiration to nil' do
     expect(PrivatePub.config[:signature_expiration]).to be_nil
-  end
-
-  it 'defaults subscription timestamp to current time in milliseconds' do
-    time = Time.now
-    allow(Time).to receive(:now).and_return(time)
-    expect(PrivatePub.subscription[:timestamp]).to eq((time.to_f * 1000).round)
-  end
-
-  it 'includes channel, server, and custom time in subscription' do
-    PrivatePub.config[:server] = 'server'
-    subscription = PrivatePub.subscription(timestamp: 123, channel: 'hello')
-    expect(subscription[:timestamp]).to eq(123)
-    expect(subscription[:channel]).to eq('hello')
-    expect(subscription[:server]).to eq('server')
-  end
-
-  it 'generates an hmac of channel, timestamp using secret token' do
-    subscription = PrivatePub.subscription(timestamp: 123, channel: 'channel')
-    digest = OpenSSL::Digest.new('sha1')
-
-    expected_signature = OpenSSL::HMAC.hexdigest(digest, token, 'channel123')
-
-    expect(subscription[:signature]).to eq(expected_signature)
   end
 
   it 'formats a message hash given a channel and a string for eval' do
@@ -57,13 +33,13 @@ describe PrivatePub do
       channel: 'chan',
       data: {
         channel: 'chan',
-        data: {foo: 'bar'}
+        data: { foo: 'bar' }
       }
     )
   end
 
   it 'publish message as json to server using Net::HTTP' do
-    PrivatePub.config[:server] = 'http://localhost'
+    stub_config(server: 'http://localhost')
     message = 'foo'
     form = double(:post).as_null_object
     http = double(:http).as_null_object
@@ -79,7 +55,7 @@ describe PrivatePub do
   end
 
   it 'it should use HTTPS if the server URL says so' do
-    PrivatePub.config[:server] = 'https://localhost'
+    stub_config(server: 'https://localhost')
     http = double(:http).as_null_object
 
     expect(Net::HTTP).to receive(:new).and_return(http)
@@ -89,7 +65,7 @@ describe PrivatePub do
   end
 
   it 'it should not use HTTPS if the server URL says not to' do
-    PrivatePub.config[:server] = 'http://localhost'
+    stub_config(server: 'http://localhost')
     http = double(:http).as_null_object
 
     expect(Net::HTTP).to receive(:new).and_return(http)
@@ -115,19 +91,48 @@ describe PrivatePub do
   end
 
   it 'says signature has expired when time passed in is greater than expiration' do
-    PrivatePub.config[:signature_expiration] = 30*60
-    time = PrivatePub.subscription[:timestamp] - 31*60*1000
+    stub_config(signature_expiration: 30*60)
+
+    time = PrivatePub.js_timestamp - 31*60*1000
     expect(PrivatePub.signature_expired?(time)).to be_truthy
   end
 
   it 'says signature has not expired when time passed in is less than expiration' do
-    PrivatePub.config[:signature_expiration] = 30*60
-    time = PrivatePub.subscription[:timestamp] - 29*60*1000
+    stub_config(signature_expiration: 30*60)
+
+    time = PrivatePub.js_timestamp - 29*60*1000
     expect(PrivatePub.signature_expired?(time)).to be_falsey
   end
 
   it 'says signature has not expired when expiration is nil' do
-    PrivatePub.config[:signature_expiration] = nil
+    stub_config(signature_expiration: nil)
+
     expect(PrivatePub.signature_expired?(0)).to be_falsey
   end
+
+  describe '.js_timestamp' do
+    it 'calculates integer js time' do
+      time = Time.now
+
+      expect(PrivatePub.js_timestamp(time)).to eq((time.to_f * 1000).round)
+    end
+
+    it 'defaults to current time in milliseconds' do
+      time = Time.now
+      allow(Time).to receive(:now).and_return(time)
+
+      expect(PrivatePub.js_timestamp).to eq(PrivatePub.js_timestamp(time))
+    end
+  end
+
+  describe '.generate_signature' do
+    it 'generates an hmac of channel, timestamp using secret token' do
+      signature = PrivatePub.generate_signature('channel', 123, :subscribe)
+      digest = OpenSSL::Digest.new('sha1')
+      expected_signature = OpenSSL::HMAC.hexdigest(digest, token, 'channel123subscribe')
+
+      expect(signature).to eq(expected_signature)
+    end
+  end
+
 end

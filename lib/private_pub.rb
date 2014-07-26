@@ -1,9 +1,21 @@
-require "openssl"
-require "net/http"
-require "net/https"
+require 'openssl'
+require 'json'
+require 'procto'
 
-require "private_pub/faye_extension"
-require "private_pub/engine" if defined? Rails
+require 'net/http'
+require 'net/https'
+
+require 'private_pub/faye_extension'
+require 'private_pub/message'
+require 'private_pub/message_factory'
+
+require 'private_pub/signature_message'
+require 'private_pub/signature_validator'
+require 'private_pub/signature'
+
+require 'private_pub/token_validator'
+require 'private_pub/token_message'
+require 'private_pub/engine' if defined? Rails
 
 module PrivatePub
   class Error < StandardError; end
@@ -11,7 +23,6 @@ module PrivatePub
   class << self
     attr_reader :config
 
-    # Resets the configuration to the default (empty hash)
     def reset_config
       @config = {}
     end
@@ -24,20 +35,20 @@ module PrivatePub
 
     # Sends the given message hash to the Faye server using Net::HTTP.
     def publish_message(message)
-      raise Error, "No server specified, ensure configuration was loaded properly." unless config[:server]
+      raise Error, 'No server specified, ensure configuration was loaded properly.' unless config[:server]
       url = URI.parse(config[:server])
 
       form = Net::HTTP::Post.new(url.path.empty? ? '/' : url.path)
       form.set_form_data(:message => message.to_json)
 
       http = Net::HTTP.new(url.host, url.port)
-      http.use_ssl = url.scheme == "https"
+      http.use_ssl = url.scheme == 'https'
       http.start {|h| h.request(form)}
     end
 
     # Returns a message hash for sending to Faye
     def message(channel, data)
-      message = {:channel => channel, :data => {:channel => channel}, :ext => {:private_pub_token => config[:secret_token]}}
+      message = {channel: channel, data: { channel: channel }, ext: { private_pub_token: config[:secret_token] } }
       if data.kind_of? String
         message[:data][:eval] = data
       else
@@ -46,24 +57,24 @@ module PrivatePub
       message
     end
 
-    # Returns a subscription hash to pass to the PrivatePub.sign call in JavaScript.
-    # Any options passed are merged to the hash.
-    def subscription(options = {})
-      {:server => config[:server], :timestamp => (Time.now.to_f * 1000).round}.merge(options).tap do |sub|
-        digest = OpenSSL::Digest.new('sha1')
-        sub[:signature] = OpenSSL::HMAC.hexdigest(digest, config[:secret_token], [sub[:channel], sub[:timestamp]].join)
-      end
+    def generate_signature(channel, timestamp, action)
+      digest = OpenSSL::Digest.new('sha1')
+      OpenSSL::HMAC.hexdigest(digest, config[:secret_token], [channel, timestamp, action].join)
     end
 
     # Determine if the signature has expired given a timestamp.
     def signature_expired?(timestamp)
-      timestamp < ((Time.now.to_f - config[:signature_expiration])*1000).round if config[:signature_expiration]
+      !!(config[:signature_expiration] && timestamp < (js_timestamp - config[:signature_expiration]*1000))
+    end
+
+    def js_timestamp(time=Time.now)
+      (time.to_f * 1000).round
     end
 
     # Returns the Faye Rack application.
     # Any options given are passed to the Faye::RackAdapter.
     def faye_app(options = {})
-      options = {:mount => "/faye", :timeout => 25, :extensions => [FayeExtension.new]}.merge(options)
+      options = {:mount => '/faye', :timeout => 25, :extensions => [FayeExtension.new]}.merge(options)
       Faye::RackAdapter.new(options)
     end
   end

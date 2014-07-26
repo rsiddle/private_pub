@@ -10,12 +10,23 @@ module PrivatePub
     end
 
     # Subscribe the client to the given channel. This generates
-    # some JavaScript calling PrivatePub.sign with the subscription
+    # some JavaScript calling PrivatePub.sign with the signature
     # options.
-    def subscribe_to(channel)
-      subscription = PrivatePub.subscription(:channel => channel)
-      content_tag "script", :type => "text/javascript" do
-        raw("PrivatePub.sign(#{subscription.to_json});")
+    def auth_subscribe(channel)
+      generate_signature(channel, :subscribe)
+    end
+
+    def auth_publish(channel)
+      generate_signature(channel, :publish)
+    end
+
+  private
+
+    # REVIEW: Is adding private view helpers a good idea?
+    def generate_signature(channel, action)
+      signature = PrivatePub::Signature.new(channel: channel, action: action)
+      content_tag 'script', :type => 'text/javascript' do
+        raw("PrivatePub.sign(#{signature.to_hash.to_json});")
       end
     end
   end

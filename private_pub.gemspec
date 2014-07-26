@@ -11,9 +11,12 @@ Gem::Specification.new do |s|
   s.require_path = "lib"
 
   s.add_dependency 'faye'
+  s.add_dependency 'procto'
 
   s.add_development_dependency 'rake'
   s.add_development_dependency 'rspec', '~> 3'
+  s.add_development_dependency 'rspec-its'
+  s.add_development_dependency 'mutant-rspec'
   s.add_development_dependency 'jasmine', '>= 1.1.1'
 
   s.rubyforge_project = s.name

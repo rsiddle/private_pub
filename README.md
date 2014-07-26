@@ -142,6 +142,7 @@ This is a fork of the original private_pub by Ryan Baits
 * Changed configuration from using yaml file to environment variables.
   This stops you committing your secret token to your git repository.
 * Changed to using HMAC for generating the signature, to prevent extension attacks.
+* Added token and signature methods for both subscribing and publishing
 
 ## Development & Feedback
 

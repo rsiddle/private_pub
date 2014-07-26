@@ -1,5 +1,5 @@
 module PrivatePub
-  class TokenValidator
+  class NullValidator
     def initialize(message)
       @message = message
     end

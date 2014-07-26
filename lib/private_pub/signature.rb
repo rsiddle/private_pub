@@ -14,7 +14,7 @@ module PrivatePub
     end
 
     def to_hash
-      {server: server, timestamp: timestamp, signature: mac, action: action}
+      {server: server, channel: channel, timestamp: timestamp, signature: mac, action: action}
     end
 
     def valid?

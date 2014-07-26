@@ -11,40 +11,12 @@ describe("PrivatePub", function() {
     expect(pub.subscriptionCallbacks["hello"]).toEqual("callback");
   });
 
-  it("has a fayeExtension which adds matching subscription signature and timestamp to outgoing message", function() {
-    var called = false;
-    var message = {channel: "/meta/subscribe", subscription: "hello"}
-    pub.subscriptions["hello"] = {signature: "abcd", timestamp: "1234"}
-    pub.fayeExtension.outgoing(message, function(message) {
-      expect(message.ext.private_pub_signature).toEqual("abcd");
-      expect(message.ext.private_pub_timestamp).toEqual("1234");
-      called = true;
-    });
-    expect(called).toBeTruthy();
-  });
-
-  it("evaluates javascript in message response", function() {
-    pub.handleResponse({eval: 'self.subscriptions.foo = "bar"'});
-    expect(pub.subscriptions.foo).toEqual("bar");
-  });
-
-  it("triggers callback matching message channel in response", function() {
-    var called = false;
-    pub.subscribe("test", function(data, channel) {
-      expect(data).toEqual("abcd");
-      expect(channel).toEqual("test");
-      called = true;
-    });
-    pub.handleResponse({channel: "test", data: "abcd"});
-    expect(called).toBeTruthy();
-  });
-
   it("adds a faye subscription with response handler when signing", function() {
     var faye = {subscribe: jasmine.createSpy()};
     spyOn(pub, 'faye').and.callFake(function(callback) {
       callback(faye);
     });
-    var options = {server: "server", channel: "somechannel"};
+    var options = {server: 'server', channel: 'somechannel', action: 'subscribe'};
     pub.sign(options);
     expect(faye.subscribe).toHaveBeenCalledWith("somechannel", pub.handleResponse);
     expect(pub.subscriptions.server).toEqual("server");
@@ -56,7 +28,7 @@ describe("PrivatePub", function() {
     spyOn(pub, 'faye').and.callFake(function(callback) {
       callback(faye);
     });
-    var options = {server: "server", channel: "somechannel"};
+    var options = {server: 'server', channel: 'somechannel', action: 'subscribe'};
     pub.sign(options);
     expect(faye.subscribe).toHaveBeenCalledWith("somechannel", pub.handleResponse);
     expect(pub.subscriptions.server).toEqual("server");
@@ -68,7 +40,7 @@ describe("PrivatePub", function() {
     spyOn(pub, 'faye').and.callFake(function(callback) {
       callback(faye);
     });
-    var options = { server: "server", channel: "somechannel" };
+    var options = { server: "server", channel: "somechannel", action: 'subscribe' };
     options.subscription = jasmine.createSpy();
     pub.sign(options);
     expect(options.subscription).toHaveBeenCalledWith("subscription");
@@ -79,7 +51,7 @@ describe("PrivatePub", function() {
     spyOn(pub, 'faye').and.callFake(function(callback) {
       callback(faye);
     });
-    var options = { server: "server", channel: "somechannel" };
+    var options = { server: "server", channel: "somechannel", action: 'subscribe' };
     pub.sign(options);
     expect(pub.subscription("somechannel")).toEqual("subscription")
   });
@@ -90,7 +62,7 @@ describe("PrivatePub", function() {
     spyOn(pub, 'faye').and.callFake(function(callback) {
       callback(faye);
     });
-    var options = { server: "server", channel: "somechannel" };
+    var options = { server: "server", channel: "somechannel", action: 'subscribe' };
     pub.sign(options);
     expect(pub.subscription("somechannel")).toEqual(sub);
     pub.unsubscribe("somechannel");
@@ -109,8 +81,8 @@ describe("PrivatePub", function() {
     spyOn(pub, 'faye').and.callFake(function(callback) {
       callback(faye);
     });
-    pub.sign({server: "server", channel: "firstchannel"});
-    pub.sign({server: "server", channel: "secondchannel"});
+    pub.sign({server: 'server', channel: 'firstchannel', action: 'subscribe'});
+    pub.sign({server: 'server', channel: 'secondchannel', action: 'subscribe'});
     expect(created).toEqual(2);
     expect(pub.subscription("firstchannel")).toBeTruthy();
     expect(pub.subscription("secondchannel")).toBeTruthy();
@@ -161,5 +133,76 @@ describe("PrivatePub", function() {
     expect(pub.fayeClient).toEqual(client);
     expect(client.addExtension).toHaveBeenCalledWith(pub.fayeExtension);
     expect(callback).toHaveBeenCalledWith(client);
+  });
+
+  describe('.fayeExtension', function () {
+
+    it('adds matching signature and timestamp with publications', function() {
+      var called = false;
+      var message = {channel: '/channel'}
+      pub.publications['/channel'] = {signature: 'abcd', timestamp: '1234'}
+      pub.fayeExtension.outgoing(message, function(message) {
+        expect(message.ext.private_pub_signature).toEqual('abcd');
+        expect(message.ext.private_pub_timestamp).toEqual('1234');
+        called = true;
+      });
+      expect(called).toBeTruthy();
+    });
+
+    it('adds matching signature and timestamp with subscriptions', function() {
+      var called = false;
+      var message = {channel: '/meta/subscribe', subscription: 'hello'}
+      pub.subscriptions["hello"] = {signature: 'abcd', timestamp: '1234'}
+      pub.fayeExtension.outgoing(message, function(message) {
+        expect(message.ext.private_pub_signature).toEqual("abcd");
+        expect(message.ext.private_pub_timestamp).toEqual("1234");
+        called = true;
+      });
+      expect(called).toBeTruthy();
+    });
+
+  });
+
+  describe('.handleResponse', function() {
+    it("evaluates javascript in message response", function() {
+      pub.handleResponse({eval: 'self.subscriptions.foo = "bar"'});
+      expect(pub.subscriptions.foo).toEqual("bar");
+    });
+
+    it("triggers callback matching message channel in response", function() {
+      var called = false;
+      pub.subscribe("test", function(data, channel) {
+        expect(data).toEqual("abcd");
+        expect(channel).toEqual("test");
+        called = true;
+      });
+      pub.handleResponse({channel: "test", data: "abcd", action: 'subscribe'});
+      expect(called).toBeTruthy();
+    });
+  });
+
+  describe('.publish', function() {
+
+    it('proxies to fayeClient', function() {
+      var faye = { publish: function(channel, data) {
+        expect(channel).toEqual('/foo');
+        expect(data).toEqual({text: 'Hi there'});
+
+        return new Promise(function(resolve, reject) {
+          resolve('foo');
+        });
+      } };
+
+      spyOn(pub, 'faye').and.callFake(function(callback) {
+        callback(faye);
+      });
+
+      pub.publish('/foo', {text: 'Hi there'}).then(function(value) {
+        expect(value).toEqual('foo');
+      }, function () {
+        throw new Error('Promise should not be rejected');
+      });
+    });
+
   });
 });

@@ -31,7 +31,7 @@ module PrivatePub
       @config = {}
     end
 
-    def self.build_client
+    def build_client
       Faye::Client.new(config[:server]).tap do |client|
         client.add_extension(FayeClientExtension.new(config[:secret_token]))
       end

@@ -2,6 +2,8 @@ require 'openssl'
 require 'json'
 require 'procto'
 
+require 'faye'
+
 require 'net/http'
 require 'net/https'
 

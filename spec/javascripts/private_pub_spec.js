@@ -41,7 +41,7 @@ describe("PrivatePub", function() {
 
   it("adds a faye subscription with response handler when signing", function() {
     var faye = {subscribe: jasmine.createSpy()};
-    spyOn(pub, 'faye').andCallFake(function(callback) {
+    spyOn(pub, 'faye').and.callFake(function(callback) {
       callback(faye);
     });
     var options = {server: "server", channel: "somechannel"};
@@ -53,7 +53,7 @@ describe("PrivatePub", function() {
 
   it("adds a faye subscription with response handler when signing", function() {
     var faye = {subscribe: jasmine.createSpy()};
-    spyOn(pub, 'faye').andCallFake(function(callback) {
+    spyOn(pub, 'faye').and.callFake(function(callback) {
       callback(faye);
     });
     var options = {server: "server", channel: "somechannel"};
@@ -65,7 +65,7 @@ describe("PrivatePub", function() {
 
   it("takes a callback for subscription object when signing", function(){
     var faye = {subscribe: function(){ return "subscription"; }};
-    spyOn(pub, 'faye').andCallFake(function(callback) {
+    spyOn(pub, 'faye').and.callFake(function(callback) {
       callback(faye);
     });
     var options = { server: "server", channel: "somechannel" };
@@ -76,7 +76,7 @@ describe("PrivatePub", function() {
 
   it("returns the subscription object for a subscribed channel", function(){
     var faye = {subscribe: function(){ return "subscription"; }};
-    spyOn(pub, 'faye').andCallFake(function(callback) {
+    spyOn(pub, 'faye').and.callFake(function(callback) {
       callback(faye);
     });
     var options = { server: "server", channel: "somechannel" };
@@ -87,7 +87,7 @@ describe("PrivatePub", function() {
   it("unsubscribes a channel by name", function(){
     var sub = { cancel: jasmine.createSpy() };
     var faye = {subscribe: function(){ return sub; }};
-    spyOn(pub, 'faye').andCallFake(function(callback) {
+    spyOn(pub, 'faye').and.callFake(function(callback) {
       callback(faye);
     });
     var options = { server: "server", channel: "somechannel" };
@@ -106,7 +106,7 @@ describe("PrivatePub", function() {
       return sub;
     };
     var faye = { subscribe: function(){ return sub(); }};
-    spyOn(pub, 'faye').andCallFake(function(callback) {
+    spyOn(pub, 'faye').and.callFake(function(callback) {
       callback(faye);
     });
     pub.sign({server: "server", channel: "firstchannel"});

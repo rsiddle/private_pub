@@ -6,6 +6,7 @@ require 'net/http'
 require 'net/https'
 
 require 'private_pub/faye_extension'
+require 'private_pub/faye_client_extension'
 require 'private_pub/message'
 require 'private_pub/message_factory'
 
@@ -28,6 +29,12 @@ module PrivatePub
 
     def reset_config
       @config = {}
+    end
+
+    def self.build_client
+      Faye::Client.new(config[:server]).tap do |client|
+        client.add_extension(FayeClientExtension.new(config[:secret_token]))
+      end
     end
 
     # Publish the given data to a specific channel. This ends up sending

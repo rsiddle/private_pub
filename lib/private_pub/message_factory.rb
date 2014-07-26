@@ -20,11 +20,11 @@ module PrivatePub
   private
 
     def signature_present?
-      @message['ext']['private_pub_signature'] != nil
+      @message.fetch('ext', {})['private_pub_signature'] != nil
     end
 
     def token_present?
-      @message['ext']['private_pub_token'] != nil
+      @message.fetch('ext', {})['private_pub_token'] != nil
     end
 
   end

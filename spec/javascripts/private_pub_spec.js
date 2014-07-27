@@ -164,11 +164,6 @@ describe("PrivatePub", function() {
   });
 
   describe('.handleResponse', function() {
-    it("evaluates javascript in message response", function() {
-      pub.handleResponse({eval: 'self.subscriptions.foo = "bar"'});
-      expect(pub.subscriptions.foo).toEqual("bar");
-    });
-
     it("triggers callback matching message channel in response", function() {
       var called = false;
       pub.subscribe("test", function(data, channel) {
@@ -186,7 +181,7 @@ describe("PrivatePub", function() {
     it('proxies to fayeClient', function() {
       var faye = { publish: function(channel, data) {
         expect(channel).toEqual('/foo');
-        expect(data).toEqual({channel: '/foo', data: {text: 'Hi there'} });
+        expect(data).toEqual({text: 'Hi there'});
 
         return new Promise(function(resolve, reject) {
           resolve('foo');

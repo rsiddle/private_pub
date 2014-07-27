@@ -60,13 +60,7 @@ module PrivatePub
 
     # Returns a message hash for sending to Faye
     def message(channel, data)
-      message = {channel: channel, data: { channel: channel }, ext: { private_pub_token: config[:secret_token] } }
-      if data.kind_of? String
-        message[:data][:eval] = data
-      else
-        message[:data][:data] = data
-      end
-      message
+      {channel: channel, data: data, ext: { private_pub_token: config[:secret_token] } }
     end
 
     def generate_signature(channel, timestamp, action)

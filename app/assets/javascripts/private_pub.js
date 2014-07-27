@@ -53,11 +53,9 @@ function buildPrivatePub(doc) {
     },
 
     publish: function(channel, data) {
-      var args = arguments;
-
       return new Promise(function(resolve, reject) {
         self.faye(function(faye) {
-          faye.publish(channel, {channel: channel, data: data}).then(resolve, reject);
+          faye.publish(channel, data).then(resolve, reject);
         });
       });
     },
@@ -92,9 +90,6 @@ function buildPrivatePub(doc) {
     },
 
     handleResponse: function(message) {
-      if (message.eval) {
-        eval(message.eval);
-      }
       if (callback = self.subscriptionCallbacks[message.channel]) {
         callback(message.data, message.channel);
       }

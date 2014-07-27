@@ -16,25 +16,11 @@ describe PrivatePub do
     expect(PrivatePub.config[:signature_expiration]).to be_nil
   end
 
-  it 'formats a message hash given a channel and a string for eval' do
-    expect(PrivatePub.message('chan', 'foo')).to eq(
-      ext: { private_pub_token: token },
-      channel: 'chan',
-      data: {
-        channel: 'chan',
-        eval: 'foo'
-      }
-    )
-  end
-
   it 'formats a message hash given a channel and a hash' do
     expect(PrivatePub.message('chan', foo: 'bar')).to eq(
       ext: { private_pub_token: token },
       channel: 'chan',
-      data: {
-        channel: 'chan',
-        data: { foo: 'bar' }
-      }
+      data: { foo: 'bar' }
     )
   end
 

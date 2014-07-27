@@ -9,7 +9,12 @@ module PrivatePub
       signature.timestamp
     end
 
-  private
+    def prepare!
+      super
+      strip_sensitive!
+    end
+
+    private
 
     def validator
       SignatureValidator.new(signature)

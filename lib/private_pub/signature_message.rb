@@ -19,5 +19,10 @@ module PrivatePub
       @signature ||= Signature.new(channel: channel, timestamp: @message['ext']['private_pub_timestamp'], mac: @message['ext']['private_pub_signature'], action: action)
     end
 
+    def strip_sensitive!
+      @message['ext']['private_pub_signature'] = nil
+      @message['ext']['private_pub_timestamp'] = nil
+    end
+
   end
 end

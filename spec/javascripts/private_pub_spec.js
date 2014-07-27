@@ -137,20 +137,20 @@ describe("PrivatePub", function() {
 
     it('adds matching signature and timestamp with publications', function(done) {
       var message = {channel: '/channel'}
-      pub.publications['/channel'] = {signature: 'abcd', timestamp: '1234'}
+      pub.publications['/channel'] = {signature: 'abcd', expires_at: '1234'}
       pub.fayeExtension.outgoing(message, function(message) {
         expect(message.ext.private_pub_signature).toEqual('abcd');
-        expect(message.ext.private_pub_timestamp).toEqual('1234');
+        expect(message.ext.private_pub_expires_at).toEqual('1234');
         done();
       });
     });
 
     it('adds matching signature and timestamp with subscriptions', function(done) {
       var message = {channel: '/meta/subscribe', subscription: 'hello'}
-      pub.subscriptions["hello"] = {signature: 'abcd', timestamp: '1234'}
+      pub.subscriptions["hello"] = {signature: 'abcd', expires_at: '1234'}
       pub.fayeExtension.outgoing(message, function(message) {
         expect(message.ext.private_pub_signature).toEqual('abcd');
-        expect(message.ext.private_pub_timestamp).toEqual('1234');
+        expect(message.ext.private_pub_expires_at).toEqual('1234');
         done();
       });
     });

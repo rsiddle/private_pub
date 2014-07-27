@@ -70,7 +70,7 @@ module PrivatePub
 
     # Determine if the signature has expired given a timestamp.
     def signature_expired?(timestamp)
-      !!(config[:signature_expiration] && timestamp < (js_timestamp - config[:signature_expiration]*1000))
+      timestamp >= js_timestamp
     end
 
     def js_timestamp(time=Time.now)

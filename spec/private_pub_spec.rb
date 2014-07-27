@@ -76,26 +76,6 @@ describe PrivatePub do
     expect(PrivatePub.faye_app).to be_kind_of(Faye::RackAdapter)
   end
 
-  it 'says signature has expired when time passed in is greater than expiration' do
-    stub_config(signature_expiration: 30*60)
-
-    time = PrivatePub.js_timestamp - 31*60*1000
-    expect(PrivatePub.signature_expired?(time)).to be_truthy
-  end
-
-  it 'says signature has not expired when time passed in is less than expiration' do
-    stub_config(signature_expiration: 30*60)
-
-    time = PrivatePub.js_timestamp - 29*60*1000
-    expect(PrivatePub.signature_expired?(time)).to be_falsey
-  end
-
-  it 'says signature has not expired when expiration is nil' do
-    stub_config(signature_expiration: nil)
-
-    expect(PrivatePub.signature_expired?(0)).to be_falsey
-  end
-
   describe '.js_timestamp' do
     it 'calculates integer js time' do
       time = Time.now

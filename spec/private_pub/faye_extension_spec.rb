@@ -9,7 +9,7 @@ describe PrivatePub::FayeExtension do
   end
 
   before(:each) do
-    stub_config(secret_token: token)
+    stub_config(secret_token: token, signature_expiration: 30)
     @message = {'channel' => '/meta/subscribe', 'ext' => {}}
   end
 
@@ -20,7 +20,7 @@ describe PrivatePub::FayeExtension do
       it 'adds an error on an incoming subscription with a bad signature' do
         @message['subscription'] = 'hello'
         @message['ext']['private_pub_signature'] = 'bad'
-        @message['ext']['private_pub_timestamp'] = '123'
+        @message['ext']['private_pub_expires_at'] = '123'
         message = prepare(@message)
 
         expect(message['error']).to eq('Incorrect signature.')
@@ -30,7 +30,7 @@ describe PrivatePub::FayeExtension do
         signature = PrivatePub::Signature.new(channel: 'hello', action: :subscribe)
         @message['subscription'] = signature.channel
         @message['ext']['private_pub_signature'] = signature.mac
-        @message['ext']['private_pub_timestamp'] = signature.timestamp
+        @message['ext']['private_pub_expires_at'] = signature.expires_at
         message = prepare(@message)
         expect(message['error']).to be_nil
       end
@@ -38,10 +38,10 @@ describe PrivatePub::FayeExtension do
       it 'has an error when signature just expired' do
         stub_config(signature_expiration: 1)
 
-        signature = PrivatePub::Signature.new(timestamp: 123, channel: 'hello', action: :subscribe)
+        signature = PrivatePub::Signature.new(expires_at: 123, channel: 'hello', action: :subscribe)
         @message['subscription'] = signature.channel
         @message['ext']['private_pub_signature'] = signature.mac
-        @message['ext']['private_pub_timestamp'] = signature.timestamp
+        @message['ext']['private_pub_expires_at'] = signature.expires_at
         message = prepare(@message)
 
         expect(message['error']).to eq('Signature has expired.')

@@ -6,6 +6,10 @@ describe PrivatePub::Signature do
     PrivatePub::Signature.new(*args)
   end
 
+  before(:each) do
+    stub_config(signature_expiration: 10)
+  end
+
   describe '#initialize' do
 
     before(:each)do
@@ -30,19 +34,19 @@ describe PrivatePub::Signature do
     end
   end
 
-  describe '#timestamp' do
-    it 'defaults subscription timestamp to current time in milliseconds' do
+  describe '#expires_at' do
+    it 'defaults subscription timestamp to current time + signature expiry' do
       sub = signature(channel: '/hello', action: :subscribe, mac: 'mac')
       time = Time.now
       allow(Time).to receive(:now) { time }
 
-      expect(sub.timestamp).to eq((time.to_f * 1000).round)
+      expect(sub.expires_at).to eq( ( (time.to_f + PrivatePub.config[:signature_expiration]) * 1000).round)
     end
 
     it 'assigns custom timestamp' do
-      subscription = signature(channel: 'chan', action: :subscribe, mac: 'mac', timestamp: 123)
+      subscription = signature(channel: 'chan', action: :subscribe, mac: 'mac', expires_at: 123)
 
-      expect(subscription.timestamp).to eq(123)
+      expect(subscription.expires_at).to eq(123)
     end
   end
 
@@ -63,17 +67,39 @@ describe PrivatePub::Signature do
   end
 
   describe '#mac' do
+
     it 'defaults to generated mac' do
       stub_config(secret_token: 'token')
       sub = signature(channel: '/hello', action: :subscribe)
 
-      expect(sub.mac).to eq(PrivatePub.generate_signature(sub.channel, sub.timestamp, sub.action))
+      expect(sub.mac).to eq(PrivatePub.generate_signature(sub.channel, sub.expires_at, sub.action))
     end
 
     it 'assigns custom mac' do
       subscription = signature(channel: 'chan', action: :subscribe, mac: 123)
 
       expect(subscription.mac).to eq(123)
+    end
+  end
+
+  describe '#expired?' do
+
+    before(:each) do
+      stub_config(secret_token: 'token')
+    end
+
+    it 'says signature has expired when current time is greater than expiration' do
+      time = Time.now
+      allow(Time).to receive(:now) { time + 1 }
+      sig = signature(channel: '/hello', action: :subscribe, expires_at: PrivatePub.js_timestamp(time))
+      expect(sig.expired?).to eq(true)
+    end
+
+    it 'says signature has not expired when current time is less than expiration' do
+      time = Time.now
+      allow(Time).to receive(:now) { time - 1 }
+      sig = signature(channel: '/hello', action: :subscribe, expires_at: PrivatePub.js_timestamp(time))
+      expect(sig.expired?).to eq(false)
     end
   end
 

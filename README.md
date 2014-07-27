@@ -96,7 +96,7 @@ The `subscribe_to` helper will output the following script which subscribes the 
 <script type="text/javascript">
   PrivatePub.sign({
     channel: "/messages/new",
-    timestamp: 1302306682972,
+    expires_at: 1302306682972,
     signature: "dc1c71d3e959ebb6f49aa6af0c86304a0740088d",
     server: "http://localhost:9292/faye"
   });

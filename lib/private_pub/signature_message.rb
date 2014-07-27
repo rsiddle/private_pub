@@ -5,8 +5,8 @@ module PrivatePub
       signature.mac
     end
 
-    def signature_timestamp
-      signature.timestamp
+    def signature_expires_at
+      signature.expires_at
     end
 
     def prepare!
@@ -14,19 +14,19 @@ module PrivatePub
       strip_sensitive!
     end
 
-    private
+  private
 
     def validator
       SignatureValidator.new(signature)
     end
 
     def signature
-      @signature ||= Signature.new(channel: channel, timestamp: @message['ext']['private_pub_timestamp'], mac: @message['ext']['private_pub_signature'], action: action)
+      @signature ||= Signature.new(channel: channel, expires_at: @message['ext']['private_pub_expires_at'], mac: @message['ext']['private_pub_signature'], action: action)
     end
 
     def strip_sensitive!
       @message['ext']['private_pub_signature'] = nil
-      @message['ext']['private_pub_timestamp'] = nil
+      @message['ext']['private_pub_expires_at'] = nil
     end
 
   end

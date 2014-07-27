@@ -27,9 +27,9 @@ function buildPrivatePub(doc) {
     connectToFaye: function() {
       self.fayeClient = new Faye.Client(self.subscriptions.server);
       self.fayeClient.addExtension(self.fayeExtension);
-      for (var i=0; i < self.fayeCallbacks.length; i++) {
-        self.fayeCallbacks[i](self.fayeClient);
-      };
+      self.fayeCallbacks.forEach(function(callback) {
+        callback(self.fayeClient)
+      });
     },
 
     fayeExtension: {
@@ -38,7 +38,7 @@ function buildPrivatePub(doc) {
         var attach_signature = function(signature) {
           if (!message.ext) message.ext = {};
           message.ext.private_pub_signature = signature.signature;
-          message.ext.private_pub_timestamp = signature.timestamp;
+          message.ext.private_pub_expires_at = signature.expires_at;
 
           callback(message);
         };
@@ -75,7 +75,7 @@ function buildPrivatePub(doc) {
     getPublishSignature: function(channel) {
       var signature = self.publications[channel];
 
-      if (signature) {
+      if (signature && signature.expires_at > Date.now()) {
         return new Promise(function (resolve, reject) {
             resolve(signature);
         });

@@ -34,22 +34,60 @@ function buildPrivatePub(doc) {
 
     fayeExtension: {
       outgoing: function(message, callback) {
-        var signature;
 
-        if (message.channel == "/meta/subscribe") {
-          signature = self.subscriptions[message.subscription];
-        } else if(!(/^\/meta\//.test(message.channel))) {
-          signature = self.publications[message.channel];
-        }
-
-        if (signature) {
+        var attach_signature = function(signature) {
           if (!message.ext) message.ext = {};
           message.ext.private_pub_signature = signature.signature;
           message.ext.private_pub_timestamp = signature.timestamp;
+
+          callback(message);
+        };
+
+        var handle_error = function(error) {
+          console.log(error);
+          callback(message);
+        };
+
+
+        if (message.channel == "/meta/subscribe") {
+          self.getSubscribeSignature(message.subscription).then(attach_signature, handle_error);
+        } else if(!(/^\/meta\//.test(message.channel))) {
+          self.getPublishSignature(message.channel).then(attach_signature, handle_error);
+        } else {
+          callback(message);
         }
 
-        callback(message);
       }
+    },
+
+    getSubscribeSignature: function(channel) {
+      var signature = self.subscriptions[channel];
+
+      if (signature) {
+        return new Promise(function (resolve, reject) {
+          resolve(signature);
+        });
+      } else {
+        return self.generateSignature(channel, 'subscribe');
+      }
+    },
+
+    getPublishSignature: function(channel) {
+      var signature = self.publications[channel];
+
+      if (signature) {
+        return new Promise(function (resolve, reject) {
+            resolve(signature);
+        });
+      } else {
+        return self.generateSignature(channel, 'publish');
+      }
+    },
+
+    generateSignature: function(channel, action) {
+      return new Promise(function (resolve, reject) {
+        reject(Error('You must implement PrivatePub.generateSignature to get signature regeneration.'));
+      });
     },
 
     publish: function(channel, data) {

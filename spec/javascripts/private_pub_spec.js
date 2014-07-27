@@ -18,7 +18,7 @@ describe("PrivatePub", function() {
     });
     var options = {server: 'server', channel: 'somechannel', action: 'subscribe'};
     pub.sign(options);
-    expect(faye.subscribe).toHaveBeenCalledWith("somechannel", pub.handleResponse);
+    expect(faye.subscribe).toHaveBeenCalledWith('somechannel', pub.handleResponse);
     expect(pub.subscriptions.server).toEqual("server");
     expect(pub.subscriptions.somechannel).toEqual(options);
   });
@@ -92,14 +92,12 @@ describe("PrivatePub", function() {
     expect(pub.subscription("secondchannel")).toBeFalsy();
   });
 
-  it("triggers faye callback function immediately when fayeClient is available", function() {
-    var called = false;
-    pub.fayeClient = "faye";
+  it("triggers faye callback function immediately when fayeClient is available", function(done) {
+    pub.fayeClient = 'faye';
     pub.faye(function(faye) {
-      expect(faye).toEqual("faye");
-      called = true;
+      expect(faye).toEqual('faye');
+      done();
     });
-    expect(called).toBeTruthy();
   });
 
   it("adds fayeCallback when client and server aren't available", function() {
@@ -137,28 +135,24 @@ describe("PrivatePub", function() {
 
   describe('.fayeExtension', function () {
 
-    it('adds matching signature and timestamp with publications', function() {
-      var called = false;
+    it('adds matching signature and timestamp with publications', function(done) {
       var message = {channel: '/channel'}
       pub.publications['/channel'] = {signature: 'abcd', timestamp: '1234'}
       pub.fayeExtension.outgoing(message, function(message) {
         expect(message.ext.private_pub_signature).toEqual('abcd');
         expect(message.ext.private_pub_timestamp).toEqual('1234');
-        called = true;
+        done();
       });
-      expect(called).toBeTruthy();
     });
 
-    it('adds matching signature and timestamp with subscriptions', function() {
-      var called = false;
+    it('adds matching signature and timestamp with subscriptions', function(done) {
       var message = {channel: '/meta/subscribe', subscription: 'hello'}
       pub.subscriptions["hello"] = {signature: 'abcd', timestamp: '1234'}
       pub.fayeExtension.outgoing(message, function(message) {
-        expect(message.ext.private_pub_signature).toEqual("abcd");
-        expect(message.ext.private_pub_timestamp).toEqual("1234");
-        called = true;
+        expect(message.ext.private_pub_signature).toEqual('abcd');
+        expect(message.ext.private_pub_timestamp).toEqual('1234');
+        done();
       });
-      expect(called).toBeTruthy();
     });
 
   });

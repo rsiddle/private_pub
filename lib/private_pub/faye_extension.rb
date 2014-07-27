@@ -13,10 +13,10 @@ module PrivatePub
       callback.call(message)
     end
 
-  end
+    def outgoing(message, callback)
+      message['data'] = { channel: message['channel'], data: message['data'] }
+      callback.call(message)
+    end
 
-  def outgoing(message, callback)
-    message['data'] = { channel: message['channel'], data: message['data'] }
-    callback.call(message)
   end
 end

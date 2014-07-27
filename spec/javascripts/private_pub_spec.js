@@ -186,7 +186,7 @@ describe("PrivatePub", function() {
     it('proxies to fayeClient', function() {
       var faye = { publish: function(channel, data) {
         expect(channel).toEqual('/foo');
-        expect(data).toEqual({text: 'Hi there'});
+        expect(data).toEqual({channel: '/foo', data: {text: 'Hi there'} });
 
         return new Promise(function(resolve, reject) {
           resolve('foo');

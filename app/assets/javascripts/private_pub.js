@@ -52,16 +52,12 @@ function buildPrivatePub(doc) {
       }
     },
 
-    publish: function() {
+    publish: function(channel, data) {
       var args = arguments;
 
       return new Promise(function(resolve, reject) {
         self.faye(function(faye) {
-          faye.publish.apply(faye, args).then(function(arg) {
-            resolve(arg);
-          }, function(arg) {
-            reject(arg);
-          })
+          faye.publish(channel, {channel: channel, data: data}).then(resolve, reject);
         });
       });
     },

@@ -5,7 +5,7 @@ module PrivatePub
 
     def initialize(attributes={})
       @channel = attributes.fetch(:channel) { raise ArgumentError, 'You must specify a channel' }
-      @action = attributes[:action].tap do |action|
+      @action = attributes[:action].to_sym.tap do |action|
         raise ArgumentError, 'Action must be :publish or :subscribe' unless [:publish, :subscribe].include?(action)
       end
       @expires_at = attributes.fetch(:expires_at) { PrivatePub.js_timestamp + (PrivatePub.config[:signature_expiration] * 1000) }.to_i

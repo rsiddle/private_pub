@@ -18,6 +18,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'rspec-its'
   s.add_development_dependency 'mutant-rspec'
   s.add_development_dependency 'jasmine', '~> 2.0'
+  s.add_development_dependency 'pry'
 
   s.rubyforge_project = s.name
   s.required_rubygems_version = ">= 1.3.4"

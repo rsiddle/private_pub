@@ -35,17 +35,6 @@ describe("PrivatePub", function() {
     expect(pub.subscriptions.somechannel).toEqual(options);
   });
 
-  it("takes a callback for subscription object when signing", function(){
-    var faye = {subscribe: function(){ return "subscription"; }};
-    spyOn(pub, 'faye').and.callFake(function(callback) {
-      callback(faye);
-    });
-    var options = { server: "server", channel: "somechannel", action: 'subscribe' };
-    options.subscription = jasmine.createSpy();
-    pub.sign(options);
-    expect(options.subscription).toHaveBeenCalledWith("subscription");
-  });
-
   it("returns the subscription object for a subscribed channel", function(){
     var faye = {subscribe: function(){ return "subscription"; }};
     spyOn(pub, 'faye').and.callFake(function(callback) {

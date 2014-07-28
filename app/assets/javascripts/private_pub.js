@@ -136,12 +136,8 @@ function buildPrivatePub(doc) {
       }
       self.subscriptions[options.channel] = options;
       self.faye(function(faye) {
-        if (!(options.channel in self.subscriptionObjects)) {
-          self.subscriptionObjects[options.channel] = faye.subscribe(options.channel, self.handleResponse);
-        }
-        if (options.subscription) {
-          options.subscription(self.subscriptionObjects[options.channel]);
-        }
+        self.unsubscribe(options.channel)
+        self.subscriptionObjects[options.channel] = faye.subscribe(options.channel, self.handleResponse);
       });
     },
 

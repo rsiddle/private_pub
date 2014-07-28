@@ -7,44 +7,28 @@ module PrivatePub
       @message = message
     end
 
-    def channel
-      if is_subscription?
-        @message['subscription']
-      else
-        @message['channel']
-      end
-    end
-
-    def is_subscription?
-      @message['channel'] == '/meta/subscribe'
-    end
-
-    def is_meta?
-      @message['channel'] =~ %r{^/meta/}
-    end
-
     def needs_authenticating?
-      is_subscription? || !is_meta?
-    end
-
-    def action
-      if is_subscription?
-        :subscribe
-      else
-        :publish
-      end
+      false
     end
 
     def prepare!
-      if needs_authenticating? && !validator.valid?
+      unless valid?
         add_error!(validator.error)
       end
+    end
+
+    def valid?
+      validator.valid?
     end
 
   private
 
     def validator
-      NullValidator.new('Authentication required')
+      @validator ||= if needs_authenticating?
+        InvalidValidator.new('Authentication required')
+      else
+        ValidValidator.new
+      end
     end
 
     def add_error!(error_message)

@@ -1,5 +1,5 @@
 module PrivatePub
-  class NullValidator
+  class InvalidValidator
     def initialize(message)
       @message = message
     end

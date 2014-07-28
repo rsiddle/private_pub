@@ -9,17 +9,20 @@ require 'net/https'
 
 require 'private_pub/faye_extension'
 require 'private_pub/faye_client_extension'
+
 require 'private_pub/message'
 require 'private_pub/message_factory'
+require 'private_pub/message/publish'
+require 'private_pub/message/subscribe'
+require 'private_pub/message/signature_auth'
+require 'private_pub/message/token_auth'
 
-require 'private_pub/signature_message'
-require 'private_pub/signature_validator'
 require 'private_pub/signature'
 
+require 'private_pub/signature_validator'
 require 'private_pub/token_validator'
-require 'private_pub/token_message'
-
-require 'private_pub/null_validator'
+require 'private_pub/valid_validator'
+require 'private_pub/invalid_validator'
 
 require 'private_pub/engine' if defined? Rails
 

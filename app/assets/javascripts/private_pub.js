@@ -136,16 +136,19 @@ function buildPrivatePub(doc) {
       }
       self.subscriptions[options.channel] = options;
       self.faye(function(faye) {
-        var sub = faye.subscribe(options.channel, self.handleResponse);
-        self.subscriptionObjects[options.channel] = sub;
+        if (!(options.channel in self.subscriptionObjects)) {
+          self.subscriptionObjects[options.channel] = faye.subscribe(options.channel, self.handleResponse);
+        }
         if (options.subscription) {
-          options.subscription(sub);
+          options.subscription(self.subscriptionObjects[options.channel]);
         }
       });
     },
 
     signPublish: function(options) {
-      self.publications.server = options.server;
+      if (!self.subscriptions.server) {
+        self.subscriptions.server = options.server;
+      }
       self.publications[options.channel] = options;
     },
 

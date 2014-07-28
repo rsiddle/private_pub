@@ -100,61 +100,183 @@ describe("PrivatePub", function() {
     });
   });
 
-  it("adds fayeCallback when client and server aren't available", function() {
-    pub.faye("callback");
-    expect(pub.fayeCallbacks[0]).toEqual("callback");
+  describe('.faye', function() {
+    it('returns fayeClient if present', function(done) {
+      pub.fayeClient = 'faye';
+      pub.faye(function(faye) {
+        expect(faye).toEqual('faye');
+        done();
+      });
+    });
+
+    it('calls callback if insertFayeScript() resolves', function(done) {
+      pub.subscriptions.server = 'server';
+
+      pub.insertFayeScript = function() {
+        return new Promise(function(resolve, reject) {
+          resolve();
+        });
+      };
+      pub.createFayeClient = function() {
+        pub.fayeClient = 'faye';
+      };
+
+      pub.faye(function(faye) {
+        expect(faye).toEqual('faye');
+        done();
+      });
+
+    });
+
+    it('does not call callback unless insertFayeScript() resolves', function() {
+      pub.subscriptions.server = 'server';
+
+      pub.insertFayeScript = function() {
+        return new Promise(function(resolve, reject) {
+          reject();
+        });
+      };
+      pub.createFayeClient = function() {
+        pub.fayeClient = 'faye';
+      };
+
+      pub.faye(function(faye) {
+        expect(true).toEqual(false);
+      });
+
+    });
+
   });
 
-  it("adds a script tag loading faye js when the server is present", function() {
-    script = {};
-    doc.createElement = function() { return script; };
-    doc.documentElement = {appendChild: jasmine.createSpy()};
-    pub.subscriptions.server = "path/to/faye";
-    pub.faye("callback");
-    expect(pub.fayeCallbacks[0]).toEqual("callback");
-    expect(script.type).toEqual("text/javascript");
-    expect(script.src).toEqual("path/to/faye.js");
-    expect(script.onload).toEqual(pub.connectToFaye);
-    expect(doc.documentElement.appendChild).toHaveBeenCalledWith(script);
-  });
+  describe('.insertFayeScript', function() {
+    it('adds a script tag to document', function() {
+      script = {};
+      doc.createElement = function() { return script; };
+      doc.documentElement = {appendChild: jasmine.createSpy()};
 
-  it("connects to faye server, adds extension, and executes callbacks", function() {
-    callback = jasmine.createSpy();
-    client = {addExtension: jasmine.createSpy()};
-    Faye.Client = function(server) {
-      expect(server).toEqual("server")
-      return client;
-    };
-    pub.subscriptions.server = "server";
-    pub.fayeCallbacks.push(callback);
-    pub.connectToFaye();
-    expect(pub.fayeClient).toEqual(client);
-    expect(client.addExtension).toHaveBeenCalledWith(pub.fayeExtension);
-    expect(callback).toHaveBeenCalledWith(client);
+      pub.insertFayeScript('path/to/faye');
+
+      expect(script.type).toEqual('text/javascript');
+      expect(script.src).toEqual('path/to/faye.js');
+      expect(doc.documentElement.appendChild).toHaveBeenCalledWith(script);
+    });
+
+    it('returns a future that resolves when the script tags onload event fires', function(done) {
+      script = {};
+      doc.createElement = function() { return script; };
+      doc.documentElement = {appendChild: function() {}};
+
+      pub.insertFayeScript('path/to/faye').then(function() {
+        done();
+      });
+
+      script.onload();
+    });
   });
+//
+//  it("connects to faye server, adds extension, and executes callbacks", function() {
+//    callback = jasmine.createSpy();
+//    client = {addExtension: jasmine.createSpy()};
+//    Faye.Client = function(server) {
+//      expect(server).toEqual("server")
+//      return client;
+//    };
+//    pub.subscriptions.server = "server";
+//    pub.fayeCallbacks.push(callback);
+//    pub.connectToFaye();
+//    expect(pub.fayeClient).toEqual(client);
+//    expect(client.addExtension).toHaveBeenCalledWith(pub.fayeExtension);
+//    expect(callback).toHaveBeenCalledWith(client);
+//  });
 
   describe('.fayeExtension', function () {
 
+    it('lets meta channels except /meta/subscribe pass through', function(done) {
+      var message = {channel: '/meta/channel'}
+      pub.fayeExtension.outgoing(message, function(processed_message) {
+        expect(processed_message).toEqual(message);
+        done();
+      });
+    });
+
     it('adds matching signature and timestamp with publications', function(done) {
-      var message = {channel: '/channel'}
-      pub.publications['/channel'] = {signature: 'abcd', expires_at: '1234'}
+      var message = {channel: '/channel'};
+      var time = Date.now() + 2000;
+      pub.publications['/channel'] = {signature: 'abcd', expires_at: time};
+
+      pub.generateSignature = function() {
+        expect(true).toEqual(false);
+        done();
+      }
+
       pub.fayeExtension.outgoing(message, function(message) {
         expect(message.ext.private_pub_signature).toEqual('abcd');
-        expect(message.ext.private_pub_expires_at).toEqual('1234');
+        expect(message.ext.private_pub_expires_at).toEqual(time);
         done();
       });
     });
 
     it('adds matching signature and timestamp with subscriptions', function(done) {
-      var message = {channel: '/meta/subscribe', subscription: 'hello'}
-      pub.subscriptions["hello"] = {signature: 'abcd', expires_at: '1234'}
+      var message = {channel: '/meta/subscribe', subscription: '/channel'};
+      var time = Date.now() + 2000;
+      pub.subscriptions['/channel'] = {signature: 'abcd', expires_at: time};
+
+      pub.generateSignature = function() {
+        expect(true).toEqual(false);
+        done();
+      }
+
       pub.fayeExtension.outgoing(message, function(message) {
         expect(message.ext.private_pub_signature).toEqual('abcd');
-        expect(message.ext.private_pub_expires_at).toEqual('1234');
+        expect(message.ext.private_pub_expires_at).toEqual(time);
         done();
       });
     });
 
+  });
+
+  describe('.getSubscribeSignature', function() {
+    it('gets signature when present and not expired', function(done) {
+      var sig =  {signature: 'abcd', expires_at: Date.now() + 2000};
+      pub.subscriptions['hello'] = sig;
+      pub.getSubscribeSignature('hello').then(function(signature) {
+        expect(signature).toEqual(sig);
+        done();
+      }, function() {
+        expect(true).toEqual(false);
+        done();
+      })
+    });
+
+    it('propagates success from generateSignature when not present', function(done) {
+      var sig = {action: 'subscribe', channel: '/channel'};
+      pub.generateSignature = function() {
+        return Promise.resolve(sig);
+      };
+
+      pub.getSubscribeSignature('hello').then(function(signature) {
+        expect(signature).toEqual(sig);
+        done();
+      }, function() {
+        expect(true).toEqual(false);
+        done();
+      })
+    });
+
+    it('propagates error from generateSignature when not present', function(done) {
+      var expected_error = new Error('Error');
+      pub.generateSignature = function() {
+        return Promise.reject(expected_error);
+      };
+
+      pub.getSubscribeSignature('hello').then(function(signature) {
+        expect(true).toEqual(false);
+        done();
+      }, function(error) {
+        expect(error).toEqual(expected_error);
+        done();
+      })
+    })
   });
 
   describe('.handleResponse', function() {
@@ -172,7 +294,7 @@ describe("PrivatePub", function() {
 
   describe('.publish', function() {
 
-    it('proxies to fayeClient', function() {
+    it('proxies to fayeClient', function(done) {
       var faye = { publish: function(channel, data) {
         expect(channel).toEqual('/foo');
         expect(data).toEqual({text: 'Hi there'});
@@ -188,6 +310,7 @@ describe("PrivatePub", function() {
 
       pub.publish('/foo', {text: 'Hi there'}).then(function(value) {
         expect(value).toEqual('foo');
+        done();
       }, function () {
         throw new Error('Promise should not be rejected');
       });

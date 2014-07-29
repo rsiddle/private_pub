@@ -1,130 +1,132 @@
 function PrivatePub(server, doc) {
   if (!doc) { doc = document; }
 
-  var self = this;
+  var self = {
+    subscriptions: {},
+    publications: {},
 
-  self.subscriptions = {};
-  self.publications = {};
+    faye: (function() {
+      var fayePromise;
 
-  self.faye = (function() {
-    var fayePromise;
+      return function() {
+        if (!fayePromise) {
+          fayePromise = self.setupFaye();
+        }
 
-    return function() {
-      if (!fayePromise) {
-        fayePromise = self.setupFaye();
+        return fayePromise;
       }
+    })(),
 
-      return fayePromise;
-    }
-  })();
+    insertFayeScript: function() {
+      return new Promise(function(resolve, reject) {
+        var script = doc.createElement('script');
+        script.type = 'text/javascript';
+        script.src = server + '.js';
+        script.onload = function() {
+          resolve();
+        };
+        doc.documentElement.appendChild(script);
+      });
+    },
 
-  self.insertFayeScript = function() {
-    return new Promise(function(resolve, reject) {
-      var script = doc.createElement('script');
-      script.type = 'text/javascript';
-      script.src = server + '.js';
-      script.onload = function() {
-        resolve();
-      };
-      doc.documentElement.appendChild(script);
-    });
-  };
+    setupFaye: function() {
+      return self.insertFayeScript().then(function() {
+        return self.createFayeClient();
+      });
+    },
 
-  self.setupFaye = function() {
-    return self.insertFayeScript().then(function() {
-      return self.createFayeClient();
-    });
-  };
+    createFayeClient: function() {
+      var client = new Faye.Client(server);
+      client.addExtension(self.fayeExtension);
+      return client;
+    },
 
-  self.createFayeClient = function() {
-    var client = new Faye.Client(server);
-    client.addExtension(self.fayeExtension);
-    return client;
-  };
+    fayeExtension: {
+      outgoing: function(message, callback) {
 
-  self.fayeExtension = {
-    outgoing: function(message, callback) {
+         function attachSignature(signature) {
+          if (!message.ext) message.ext = {};
+          message.ext.private_pub_signature = signature.signature;
+          message.ext.private_pub_expires_at = signature.expires_at;
 
-       function attachSignature(signature) {
-        if (!message.ext) message.ext = {};
-        message.ext.private_pub_signature = signature.signature;
-        message.ext.private_pub_expires_at = signature.expires_at;
+          callback(message);
+        }
 
-        callback(message);
+        function handleError(error) {
+          console.log(error);
+          callback(message);
+        }
+
+        if (message.channel === '/meta/subscribe') {
+          self.getSubscribeSignature(message.subscription).then(attachSignature, handleError);
+        } else if(!(/^\/meta\//.test(message.channel))) {
+          self.getPublishSignature(message.channel).then(attachSignature, handleError);
+        } else {
+          callback(message);
+        }
+
       }
+    },
 
-      function handleError(error) {
-        console.log(error);
-        callback(message);
-      }
+    getSubscribeSignature: function(channel) {
+      return self.getSignature(self.subscriptions, channel, 'subscribe');
+    },
 
-      if (message.channel === '/meta/subscribe') {
-        self.getSubscribeSignature(message.subscription).then(attachSignature, handleError);
-      } else if(!(/^\/meta\//.test(message.channel))) {
-        self.getPublishSignature(message.channel).then(attachSignature, handleError);
+    getPublishSignature: function(channel) {
+      return self.getSignature(self.publications, channel, 'publish');
+    },
+
+    // REVIEW: Possibly susceptible to race conditions
+
+    getSignature: function(object, channel, action) {
+      var signature = object[channel];
+
+      /* TODO: Make signature objects. */
+      if ( ( channel in object ) && ( parseInt(signature.expires_at, 10) > Date.now() ) ) {
+        return Promise.resolve(signature);
       } else {
-        callback(message);
+        return self.generateSignature(channel, action).then(self.sign);
       }
+    },
 
-    }
-  };
+    generateSignature: function(channel, action) {
+      return Promise.reject(new Error('You must implement PrivatePub.generateSignature to get signature regeneration.'));
+    },
 
-  self.getSubscribeSignature = function(channel) {
-    return self.getSignature(self.subscriptions, channel, 'subscribe');
-  };
+    sign: function(options) {
+      if (options.action === 'subscribe') {
+        self.subscriptions[options.channel] = options;
+      } else if(options.action === 'publish') {
+        self.publications[options.channel] = options;
+      } else {
+        throw new Error('Action must be publish or subscribe');
+      }
+      return options;
+    },
 
-  self.getPublishSignature = function(channel) {
-    return self.getSignature(self.publications, channel, 'publish');
-  };
-
-  // REVIEW: Possibly susceptible to race conditions
-
-  self.getSignature = function(object, channel, action) {
-    var signature = object[channel];
-
-    /* TODO: Make signature objects. */
-    if ( ( channel in object ) && ( parseInt(signature.expires_at, 10) > Date.now() ) ) {
-      return Promise.resolve(signature);
-    } else {
-      return self.generateSignature(channel, action).then(self.sign);
-    }
-  };
-
-  self.generateSignature = function(channel, action) {
-    return Promise.reject(new Error('You must implement PrivatePub.generateSignature to get signature regeneration.'));
-  };
-
-  self.publish = function(channel, data) {
-    return self.faye().then(function(faye) {
-      return faye.publish(channel, data);
-    });
-  };
-
-  self.sign = function(options) {
-    if (options.action === 'subscribe') {
-      self.subscriptions[options.channel] = options;
-    } else if(options.action === 'publish') {
-      self.publications[options.channel] = options;
-    } else {
-      throw new Error('Action must be publish or subscribe');
-    }
-    return options;
-  };
-
-  self.subscribe = function(channel, callback) {
-    var promise = self.faye().then(function(faye) {
-      var subscription = faye.subscribe(channel, function(message) {
-        callback(message.data, message.channel);
+    publish: function(channel, data) {
+      return self.faye().then(function(faye) {
+        return faye.publish(channel, data);
       });
-      return subscription.cancel;
-    });
-    promise.cancel = function() {
-      return promise.then(function(cancel) {
-        return cancel();
+    },
+
+    subscribe: function(channel, callback) {
+      var promise = self.faye().then(function(faye) {
+        var subscription = faye.subscribe(channel, function(message) {
+          callback(message.data, message.channel);
+        });
+        return subscription.cancel;
       });
-    };
-    return promise;
+      promise.cancel = function() {
+        return promise.then(function(cancel) {
+          return cancel();
+        });
+      };
+      return promise;
+    }
   };
+
+  return self;
 }
 
 

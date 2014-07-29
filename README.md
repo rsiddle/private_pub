@@ -99,7 +99,7 @@ The `sign_private_pub` helper will output the following script which authorizes 
 
 ```html
 <script type="text/javascript">
-  var private_pub = new PrivatePub("http://localhost:9292/faye");
+  var private_pub = PrivatePub("http://localhost:9292/faye");
   private_pub.sign({
     channel: "/messages/new",
     expires_at: 1302306682972,

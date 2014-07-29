@@ -18,6 +18,7 @@ require 'private_pub/message/signature_auth'
 require 'private_pub/message/token_auth'
 
 require 'private_pub/signature'
+require 'private_pub/signature/js_builder'
 
 require 'private_pub/signature_validator'
 require 'private_pub/token_validator'

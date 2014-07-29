@@ -50,22 +50,6 @@ describe PrivatePub::Signature do
     end
   end
 
-  describe '#server' do
-    it 'defaults to server config' do
-      stub_config(server: 'server')
-      subscription = signature(channel: 'chan', mac: 'mac', action: :subscribe)
-
-      expect(subscription.server).to eq('server')
-    end
-
-    it 'assigns custom server' do
-
-      subscription = signature(channel: 'chan', action: :subscribe, mac: 'sig', server: 'server')
-
-      expect(subscription.server).to eq('server')
-    end
-  end
-
   describe '#mac' do
 
     it 'defaults to generated mac' do

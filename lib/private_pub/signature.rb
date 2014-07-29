@@ -1,7 +1,7 @@
 module PrivatePub
   class Signature
 
-    attr_reader :channel, :expires_at, :server, :mac, :action
+    attr_reader :channel, :expires_at, :mac, :action
 
     def initialize(attributes={})
       @channel = attributes.fetch(:channel) { raise ArgumentError, 'You must specify a channel' }
@@ -9,12 +9,11 @@ module PrivatePub
         raise ArgumentError, 'Action must be :publish or :subscribe' unless [:publish, :subscribe].include?(action)
       end
       @expires_at = attributes.fetch(:expires_at) { PrivatePub.js_timestamp + (PrivatePub.config[:signature_expiration] * 1000) }.to_i
-      @server = attributes.fetch(:server) { PrivatePub.config[:server] }
       @mac = attributes.fetch(:mac) { generate_mac }
     end
 
     def to_hash
-      {server: server, channel: channel, expires_at: expires_at, signature: mac, action: action}
+      {channel: channel, expires_at: expires_at, signature: mac, action: action}
     end
 
     def valid?

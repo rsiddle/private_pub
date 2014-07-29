@@ -43,26 +43,16 @@ It's not necessary to include faye.js since that will be handled automatically f
 
 ## Usage
 
-Use the `subscribe_to` helper method on any page to subscribe to a channel.
+Use the `sign_private_pub` helper method on any page to allow subscriptions and publications to specific channels.
 
 ```rhtml
-<%= subscribe_to "/messages/new" %>
+<%= sign_private_pub do |p|
+  p.subscribe '/messages/new', '/messages/spam'
+  p.publish '/messages/create'
+end %>
 ```
 
-Use the `publish_to` helper method to send JavaScript to that channel. This is usually done in a JavaScript AJAX template (such as a create.js.erb file).
-
-```rhtml
-<% publish_to "/messages/new" do %>
-  $("#chat").append("<%= j render(@messages) %>");
-<% end %>
-```
-
-This JavaScript will be immediately evaluated on all clients who have subscribed to that channel. In this example they will see the new chat message appear in real-time without reloading the browser.
-
-
-## Alternative Usage
-
-If you prefer to work through JSON instead of `.js.erb` templates, you can pass a hash to `publish_to` instead of a block and it will be converted `to_json` behind the scenes. This can be done anywhere (such as the controller).
+You can publish json by passing a hash to `PrivatePub.publish_to`. This can be done anywhere (such as the controller).
 
 ```ruby
 PrivatePub.publish_to "/messages/new", :chat_message => "Hello, world!"
@@ -71,12 +61,27 @@ PrivatePub.publish_to "/messages/new", :chat_message => "Hello, world!"
 And then handle this through JavaScript on the client side.
 
 ```javascript
-PrivatePub.subscribe("/messages/new", function(data, channel) {
+private_pub.subscribe("/messages/new", function(data, channel) {
   $("#chat").append(data.chat_message);
 });
 ```
 
-The Ruby `subscribe_to` helper call is still necessary with this approach to grant the user access to the channel. The JavaScript is just a callback for any custom behavior.
+`private_pub.subscribe` returns a promise that resolves to the function to cancel the subscription. If you can think of a more sensible api, open an issue.
+
+```javascript
+private_pub.subscribe("/messages/new", function(data, channel) { }).then(function(cancel) {
+  setTimeout(cancel, 1000); // Cancel subscription 1 second
+});
+```
+
+You can also call cancel directly on the promise returned by `private_pub.subscribe`.
+
+```javascript
+var subscription = private_pub.subscribe("/messages/new", function(data, channel) { });
+subscription.cancel().then(function() {
+  console.log('Subscription cancelled.');
+});
+```
 
 
 ## Configuration
@@ -90,15 +95,15 @@ The configuration is set via environment variables:
 
 ## How It Works
 
-The `subscribe_to` helper will output the following script which subscribes the user to a specific channel and server.
+The `sign_private_pub` helper will output the following script which authorizes the user to publish or subscribe to a specific channel.
 
 ```html
 <script type="text/javascript">
-  PrivatePub.sign({
+  var private_pub = new PrivatePub("http://localhost:9292/faye");
+  private_pub.sign({
     channel: "/messages/new",
     expires_at: 1302306682972,
     signature: "dc1c71d3e959ebb6f49aa6af0c86304a0740088d",
-    server: "http://localhost:9292/faye"
   });
 </script>
 ```

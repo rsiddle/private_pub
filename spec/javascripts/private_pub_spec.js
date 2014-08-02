@@ -1,9 +1,20 @@
 describe("PrivatePub", function() {
-  var pub, doc;
+  var pub, doc, faye;
   beforeEach(function() {
     Faye = {}; // To simulate global Faye object
     doc = {};
     pub = buildPub('server');
+    faye = {
+      publish: function() {
+        return Promise.resolve();
+      },
+      subscribe: function() {
+        return {
+          cancel: function() { },
+          whenDone: Promise.resolve()
+        };
+      }
+    };
   });
 
   var buildPub = function(server) {
@@ -37,59 +48,11 @@ describe("PrivatePub", function() {
     });
   });
 
-  describe('.subscribe', function() {
-    var faye, subscription;
-
-    beforeEach(function() {
-      subscription = { cancel: jasmine.createSpy().and.returnValue('cancel_value') };
-      faye = { subscribe: jasmine.createSpy().and.returnValue(subscription) };
-      spyOn(pub, 'faye').and.returnValue(Promise.resolve(faye));
-    });
-
-    it('resolves and calls faye.subscribe', function(done) {
-      pub.subscribe('hello', 'callback').then(function() {
-        expect(faye.subscribe).toHaveBeenCalled();
-        done();
-      }, function(error) {
-        console.log(error);
-        expect(true).toEqual(false);
-        done();
-      });
-    });
-
-    it('resolves with cancel method', function(done) {
-      pub.subscribe('hello', 'callback').then(function(cancel) {
-        var cancel_value = cancel();
-        expect(subscription.cancel).toHaveBeenCalled();
-        expect(cancel_value).toEqual('cancel_value');
-        done();
-      }, function(error) {
-        console.log(error);
-        expect(true).toBe(false);
-        done();
-      });
-    });
-
-    it('returns object with cancel method', function(done) {
-      sub = pub.subscribe('hello', 'callback')
-      sub.cancel().then(function(cancel_value) {
-        expect(subscription.cancel).toHaveBeenCalled();
-        expect(cancel_value).toEqual('cancel_value');
-        done();
-      }, function(error) {
-        console.log(error);
-        expect(true).toBe(false);
-        done();
-      });
-    });
-
-  });
-
   describe('.setupFaye', function() {
 
     it('inserts faye script then returns faye client.', function(done) {
       spyOn(pub, 'insertFayeScript').and.returnValue(Promise.resolve());
-      spyOn(pub, 'createFayeClient').and.returnValue('faye');
+      spyOn(pub, 'createClient').and.returnValue('faye');
 
       pub.setupFaye().then(function(faye) {
         expect(faye).toEqual('faye');
@@ -147,9 +110,9 @@ describe("PrivatePub", function() {
 
   describe('.setupFaye', function() {
 
-    it('resolves to createFayeClient() if insertFayeScript() resolves', function(done) {
+    it('resolves to createClient() if insertFayeScript() resolves', function(done) {
       spyOn(pub, 'insertFayeScript').and.returnValue(Promise.resolve());
-      spyOn(pub, 'createFayeClient').and.returnValue('faye');
+      spyOn(pub, 'createClient').and.returnValue('faye');
 
       pub.setupFaye().then(function(faye) {
         expect(faye).toEqual('faye');
@@ -162,7 +125,7 @@ describe("PrivatePub", function() {
 
     it('calls error handler if insertFayeScript() rejects', function(done) {
       spyOn(pub, 'insertFayeScript').and.returnValue(Promise.reject('error'));
-      spyOn(pub, 'createFayeClient').and.returnValue('faye');
+      spyOn(pub, 'createClient').and.returnValue('faye');
 
       pub.setupFaye().then(function(faye) {
         expect(true).toEqual(false);
@@ -314,17 +277,13 @@ describe("PrivatePub", function() {
 
   describe('.publish', function() {
 
-    it('proxies to fayeClient', function(done) {
-      var faye = {publish: function(channel, data) {
-        expect(channel).toEqual('/foo');
-        expect(data).toEqual({text: 'Hi there'});
-
-        return Promise.resolve('foo');
-      }};
+    it('proxies to faye client', function(done) {
+      spyOn(faye, 'publish').and.returnValue(Promise.resolve('foo'));
 
       spyOn(pub, 'faye').and.returnValue(Promise.resolve(faye));
 
       pub.publish('/foo', {text: 'Hi there'}).then(function(value) {
+        expect(faye.publish).toHaveBeenCalledWith('/foo', {text: 'Hi there'});
         expect(value).toEqual('foo');
         done();
       }, function () {
@@ -334,4 +293,28 @@ describe("PrivatePub", function() {
     });
 
   });
+
+  describe('.subscribe', function() {
+
+    it('proxies to faye client', function(done) {
+      var subscription = {
+        cancel: function() { },
+        whenDone: Promise.resolve()
+      };
+      spyOn(faye, 'subscribe').and.returnValue(subscription);
+
+      spyOn(pub, 'faye').and.returnValue(Promise.resolve(faye));
+
+      pub.subscribe('/foo', function() {}).then(function(sub) {
+        expect(faye.subscribe).toHaveBeenCalled();
+        expect(sub).toBe(subscription);
+        done();
+      }, function () {
+        expect(true).toEqual(false);
+        done();
+      });
+    });
+
+  });
+
 });

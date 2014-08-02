@@ -1,133 +1,165 @@
-function PrivatePub(server, doc) {
-  if (!doc) { doc = document; }
+(function() {
 
-  var self = {
-    subscriptions: {},
-    publications: {},
+  // This api is pretty weak, until I think up of one better than faye's,
+  // which falls short when wanting to pass around thenables as values.
+  // This at least solves faye_client acting as a thenable.
+  function FayeAdaptor(faye_client) {
+    return {
 
-    faye: (function() {
-      var fayePromise;
+      publish: faye_client.publish,
 
-      return function() {
-        if (!fayePromise) {
-          fayePromise = self.setupFaye();
-        }
-
-        return fayePromise;
-      }
-    })(),
-
-    insertFayeScript: function() {
-      return new Promise(function(resolve, reject) {
-        var script = doc.createElement('script');
-        script.type = 'text/javascript';
-        script.src = server + '.js';
-        script.onload = function() {
-          resolve();
-        };
-        doc.documentElement.appendChild(script);
-      });
-    },
-
-    setupFaye: function() {
-      return self.insertFayeScript().then(function() {
-        return self.createFayeClient();
-      });
-    },
-
-    createFayeClient: function() {
-      var client = new Faye.Client(server);
-      client.addExtension(self.fayeExtension);
-      return client;
-    },
-
-    fayeExtension: {
-      outgoing: function(message, callback) {
-
-         function attachSignature(signature) {
-          if (!message.ext) message.ext = {};
-          message.ext.private_pub_signature = signature.signature;
-          message.ext.private_pub_expires_at = signature.expires_at;
-
-          callback(message);
-        }
-
-        function handleError(error) {
-          console.log(error);
-          callback(message);
-        }
-
-        if (message.channel === '/meta/subscribe') {
-          self.getSubscribeSignature(message.subscription).then(attachSignature, handleError);
-        } else if(!(/^\/meta\//.test(message.channel))) {
-          self.getPublishSignature(message.channel).then(attachSignature, handleError);
-        } else {
-          callback(message);
-        }
-
-      }
-    },
-
-    getSubscribeSignature: function(channel) {
-      return self.getSignature(self.subscriptions, channel, 'subscribe');
-    },
-
-    getPublishSignature: function(channel) {
-      return self.getSignature(self.publications, channel, 'publish');
-    },
-
-    // REVIEW: Possibly susceptible to race conditions
-
-    getSignature: function(object, channel, action) {
-      var signature = object[channel];
-
-      /* TODO: Make signature objects. */
-      if ( ( channel in object ) && ( parseInt(signature.expires_at, 10) > Date.now() ) ) {
-        return Promise.resolve(signature);
-      } else {
-        return self.generateSignature(channel, action).then(self.sign);
-      }
-    },
-
-    generateSignature: function(channel, action) {
-      return Promise.reject(new Error('You must implement PrivatePub.generateSignature to get signature regeneration.'));
-    },
-
-    sign: function(options) {
-      if (options.action === 'subscribe') {
-        self.subscriptions[options.channel] = options;
-      } else if(options.action === 'publish') {
-        self.publications[options.channel] = options;
-      } else {
-        throw new Error('Action must be publish or subscribe');
-      }
-      return options;
-    },
-
-    publish: function(channel, data) {
-      return self.faye().then(function(faye) {
-        return faye.publish(channel, data);
-      });
-    },
-
-    subscribe: function(channel, callback) {
-      var promise = self.faye().then(function(faye) {
-        var subscription = faye.subscribe(channel, function(message) {
+      subscribe: function(channel, callback) {
+        var faye_subscription = faye_client.subscribe(channel, function(message) {
           callback(message.data, message.channel);
         });
-        return subscription.cancel;
-      });
-      promise.cancel = function() {
-        return promise.then(function(cancel) {
-          return cancel();
-        });
-      };
-      return promise;
-    }
-  };
+        return {
+          cancel: faye_subscription.cancel,
+          whenDone: Promise.resolve(faye_subscription)
+        }
+      }
 
-  return self;
-}
+    };
+  }
+
+  function FayeBuilder(server, doc, signatures) {
+    var self = {
+
+      build: function() {
+        return self.insertFayeScript().then(function() {
+          return self.createClient();
+        });
+      },
+
+      insertFayeScript: function() {
+        return new Promise(function(resolve, reject) {
+          var script = doc.createElement('script');
+          script.type = 'text/javascript';
+          script.src = server + '.js';
+          script.onload = function() {
+            resolve();
+          };
+          doc.documentElement.appendChild(script);
+        });
+      },
+
+      createClient: function() {
+        return FayeAdaptor(self.createRawClient());
+      },
+
+      createRawClient: function() {
+        var client = new Faye.Client(server);
+        client.addExtension(self.fayeExtension);
+        return client;
+      },
+
+      fayeExtension: {
+        outgoing: function(message, callback) {
+
+          function attachSignature(signature) {
+            if (!message.ext) message.ext = {};
+            message.ext.private_pub_signature = signature.signature;
+            message.ext.private_pub_expires_at = signature.expires_at;
+
+            callback(message);
+          }
+
+          function handleError(error) {
+            console.log(error);
+            callback(message);
+          }
+
+          if (message.channel === '/meta/subscribe') {
+            signatures.subscribe(message.subscription).then(attachSignature, handleError);
+          } else if(!(/^\/meta\//.test(message.channel))) {
+            signatures.publish(message.channel).then(attachSignature, handleError);
+          } else {
+            callback(message);
+          }
+
+        }
+      }
+
+    };
+    return self;
+  }
+
+  function PrivatePub(server, doc) {
+    if (!doc) { doc = document; }
+
+    var self = {
+      subscriptions: {},
+      publications: {},
+
+      faye: (function() {
+        var fayePromise;
+
+        return function() {
+          if (!fayePromise) {
+            fayePromise = self.createFaye();
+          }
+
+          return fayePromise;
+        }
+      })(),
+
+      createFaye: function() {
+        return FayeBuilder(server, doc, { publish: self.getPublishSignature, subscribe: self.getSubscribeSignature }).build();
+      },
+
+      getSubscribeSignature: function(channel) {
+        return self.getSignature(self.subscriptions, channel, 'subscribe');
+      },
+
+      getPublishSignature: function(channel) {
+        return self.getSignature(self.publications, channel, 'publish');
+      },
+
+      // REVIEW: Possibly susceptible to race conditions
+
+      getSignature: function(object, channel, action) {
+        var signature = object[channel];
+
+        /* TODO: Make signature objects. */
+        if ( ( channel in object ) && ( parseInt(signature.expires_at, 10) > Date.now() ) ) {
+          return Promise.resolve(signature);
+        } else {
+          return self.generateSignature(channel, action).then(self.sign);
+        }
+      },
+
+      generateSignature: function(channel, action) {
+        return Promise.reject(new Error('You must implement PrivatePub.generateSignature to get signature regeneration.'));
+      },
+
+      sign: function(options) {
+        if (options.action === 'subscribe') {
+          self.subscriptions[options.channel] = options;
+        } else if(options.action === 'publish') {
+          self.publications[options.channel] = options;
+        } else {
+          throw new Error('Action must be publish or subscribe');
+        }
+        return options;
+      },
+
+      publish: function(channel, data) {
+        return self.faye().then(function(faye) {
+          return faye.publish(channel, data);
+        });
+      },
+
+      subscribe: function(channel, callback) {
+        return self.faye().then(function(faye) {
+          return faye.subscribe(channel, callback);
+        });
+      }
+    };
+
+    return self;
+  }
+
+  window.PrivatePub = PrivatePub
+})();
 
 
 /* PROMISES POLYFILL. TODO: Do something better than just paste it in here. */

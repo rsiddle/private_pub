@@ -108,7 +108,8 @@ The `sign_private_pub` helper will output the following script which authorizes 
 </script>
 ```
 
-The signature and timestamp checked on the Faye server to ensure users are only able to access channels you subscribe them to. The signature will automatically expire after the time specified in the configuration.
+The signature and timestamp are checked on the Faye server to ensure users are only able to access channels you subscribe them to.
+The signature will automatically expire after the time specified in the configuration.
 
 The `publish_to` method will send a post request to the Faye server (using `Net::HTTP`) instructing it to send the given data back to the browser.
 

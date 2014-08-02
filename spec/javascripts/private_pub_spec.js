@@ -1,7 +1,6 @@
 describe("PrivatePub", function() {
   var pub, doc, faye;
   beforeEach(function() {
-    Faye = {}; // To simulate global Faye object
     doc = {};
     pub = buildPub('server');
     faye = {

@@ -1,7 +1,6 @@
 describe("PrivatePub.FayeBuilder", function() {
   var builder, doc, faye, signatures;
   beforeEach(function() {
-    Faye = {}; // To simulate global Faye object
     doc = {};
 
     var signature = { signature: 'sig', expires_at: 123};

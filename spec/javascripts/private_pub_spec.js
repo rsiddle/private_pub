@@ -48,41 +48,10 @@ describe("PrivatePub", function() {
     });
   });
 
-  describe('.setupFaye', function() {
-
-    it('inserts faye script then returns faye client.', function(done) {
-      spyOn(pub, 'insertFayeScript').and.returnValue(Promise.resolve());
-      spyOn(pub, 'createClient').and.returnValue('faye');
-
-      pub.setupFaye().then(function(faye) {
-        expect(faye).toEqual('faye');
-        done();
-      }, function() {
-        expect(true).toEqual(false);
-        done();
-      });
-    });
-
-    it('calls error handler if insertFayeScript fails', function(done) {
-      spyOn(pub, 'insertFayeScript').and.returnValue(Promise.reject('error'));
-      spyOn(pub, 'createFayeClient');
-
-      pub.setupFaye().then(function() {
-        expect(true).toEqual(false);
-        done();
-      }, function(error) {
-        expect(error).toEqual('error');
-        expect(pub.createFayeClient.calls.count()).toEqual(0);
-        done();
-      });
-    });
-
-  });
-
   describe('.faye', function() {
 
-    it('returns setupFaye() promise', function(done) {
-      spyOn(pub, 'setupFaye').and.returnValue(Promise.resolve('faye'));
+    it('returns createFaye() promise', function(done) {
+      spyOn(pub, 'createFaye').and.returnValue(Promise.resolve('faye'));
 
       pub.faye().then(function(faye) {
         expect(faye).toBe('faye');
@@ -93,12 +62,12 @@ describe("PrivatePub", function() {
       });
     });
 
-    it('memoizes setupFaye', function(done) {
-      spyOn(pub, 'setupFaye').and.returnValue(Promise.resolve('faye'));
+    it('memoizes createFaye', function(done) {
+      spyOn(pub, 'createFaye').and.returnValue(Promise.resolve('faye'));
 
       Promise.all([pub.faye(), pub.faye()]).then(function(fayes) {
         expect(fayes).toEqual(['faye', 'faye']);
-        expect(pub.setupFaye.calls.count()).toEqual(1);
+        expect(pub.createFaye.calls.count()).toEqual(1);
         done();
       }, function () {
         expect(true).toEqual(false);
@@ -108,65 +77,6 @@ describe("PrivatePub", function() {
 
   });
 
-  describe('.setupFaye', function() {
-
-    it('resolves to createClient() if insertFayeScript() resolves', function(done) {
-      spyOn(pub, 'insertFayeScript').and.returnValue(Promise.resolve());
-      spyOn(pub, 'createClient').and.returnValue('faye');
-
-      pub.setupFaye().then(function(faye) {
-        expect(faye).toEqual('faye');
-        done();
-      }, function() {
-        expect(true).toEqual(false);
-        done();
-      });
-    });
-
-    it('calls error handler if insertFayeScript() rejects', function(done) {
-      spyOn(pub, 'insertFayeScript').and.returnValue(Promise.reject('error'));
-      spyOn(pub, 'createClient').and.returnValue('faye');
-
-      pub.setupFaye().then(function(faye) {
-        expect(true).toEqual(false);
-        done();
-      }, function(error) {
-        done();
-      });
-    });
-
-  });
-
-  describe('.insertFayeScript', function() {
-
-    // TODO: Use a real DOM to test this.
-    it('adds a script tag to document', function() {
-      pub = buildPub('path/to/faye');
-
-      script = {};
-      doc.createElement = function() { return script; };
-      doc.documentElement = {appendChild: jasmine.createSpy()};
-
-      pub.insertFayeScript();
-
-      expect(script.type).toEqual('text/javascript');
-      expect(script.src).toEqual('path/to/faye.js');
-      expect(doc.documentElement.appendChild).toHaveBeenCalledWith(script);
-    });
-
-    it('returns a future that resolves when the script tags onload event fires', function(done) {
-      script = {};
-      doc.createElement = function() { return script; };
-      doc.documentElement = {appendChild: function() {}};
-
-      pub.insertFayeScript('path/to/faye').then(function() {
-        done();
-      });
-
-      script.onload();
-    });
-
-  });
 //
 //  it("connects to faye server, adds extension, and executes callbacks", function() {
 //    callback = jasmine.createSpy();
@@ -182,52 +92,6 @@ describe("PrivatePub", function() {
 //    expect(client.addExtension).toHaveBeenCalledWith(pub.fayeExtension);
 //    expect(callback).toHaveBeenCalledWith(client);
 //  });
-
-  describe('.fayeExtension', function () {
-
-    it('lets meta channels except /meta/subscribe pass through', function(done) {
-      var message = { channel: '/meta/channel' };
-      pub.fayeExtension.outgoing(message, function(processed_message) {
-        expect(processed_message).toEqual(message);
-        done();
-      });
-    });
-
-    it('adds matching signature and timestamp with publications', function(done) {
-      var message = { channel: '/channel' };
-      var time = Date.now() + 2000;
-      pub.publications['/channel'] = {signature: 'abcd', expires_at: time};
-
-      pub.generateSignature = function() {
-        expect(true).toEqual(false);
-        done();
-      };
-
-      pub.fayeExtension.outgoing(message, function(message) {
-        expect(message.ext.private_pub_signature).toEqual('abcd');
-        expect(message.ext.private_pub_expires_at).toEqual(time);
-        done();
-      });
-    });
-
-    it('adds matching signature and timestamp with subscriptions', function(done) {
-      var message = { channel: '/meta/subscribe', subscription: '/channel' };
-      var time = Date.now() + 2000;
-      pub.subscriptions['/channel'] = {signature: 'abcd', expires_at: time};
-
-      pub.generateSignature = function() {
-        expect(true).toEqual(false);
-        done();
-      };
-
-      pub.fayeExtension.outgoing(message, function(message) {
-        expect(message.ext.private_pub_signature).toEqual('abcd');
-        expect(message.ext.private_pub_expires_at).toEqual(time);
-        done();
-      });
-    });
-
-  });
 
   describe('.getSubscribeSignature', function() {
 

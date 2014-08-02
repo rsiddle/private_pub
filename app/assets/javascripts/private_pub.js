@@ -158,6 +158,9 @@
     return self;
   }
 
+  PrivatePub.FayeAdaptor = FayeAdaptor;
+  PrivatePub.FayeBuilder = FayeBuilder;
+
   window.PrivatePub = PrivatePub
 })();
 

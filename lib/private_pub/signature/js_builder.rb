@@ -28,7 +28,11 @@ module PrivatePub
       end
 
       def build_signature(signature)
-        "private_pub.sign(#{signature.to_hash.to_json});"
+        "private_pub.sign(#{signature_hash(signature).to_json});"
+      end
+
+      def signature_hash(signature)
+        signature.to_hash.merge(current_time: PrivatePub.js_timestamp)
       end
 
       def add_signatures(channels, action)

@@ -86,6 +86,8 @@
   function PrivatePub(server, doc) {
     if (!doc) { doc = document; }
 
+    var server_time_offset = 0;
+
     var self = {
       signatures: {
         publish: {},
@@ -122,9 +124,6 @@
         var object = self.signatures[action];
         var signature = object[channel];
 
-        /* TODO: Make signature objects. */
-        /* FIXME: Signatures always seem to be expired! (This is confirmed to be because of clock synchronisation issues) */
-        /* TODO: Send current time with signatures to fix any clock synchronisation issues */
         if ( ( channel in object ) && !signature.has_expired() ) {
           return Promise.resolve(signature);
         } else {
@@ -136,13 +135,17 @@
         return Promise.reject(new Error('You must implement PrivatePub.generateSignature to get signature regeneration.'));
       },
 
+      /* REVIEW: Will latency issues potentially cause minor problems for the server_time_offset correction? */
+
       sign: function(options) {
-        var signature = self.buildSignature(options);
-        if (signature.action === 'subscribe' || signature.action === 'publish') {
-          self.signatures[signature.action][signature.channel] = signature;
-        } else {
+        if (['subscribe', 'publish'].indexOf(options.action) === -1) {
           throw new Error('Action must be publish or subscribe');
         }
+        if(options.current_time) {
+          server_time_offset = (options.current_time - Date.now())
+        }
+        var signature = self.buildSignature(options);
+        self.signatures[signature.action][signature.channel] = signature;
         return signature;
       },
 
@@ -153,7 +156,7 @@
           action: options.action,
           mac: options.mac,
           has_expired: function() {
-            return Date.now() > this.expires_at;
+            return (Date.now() + server_time_offset) > this.expires_at;
           }
         };
       },

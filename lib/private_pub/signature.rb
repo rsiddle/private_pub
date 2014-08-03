@@ -13,7 +13,7 @@ module PrivatePub
     end
 
     def to_hash
-      {channel: channel, expires_at: expires_at, mac: mac, action: action}
+      {channel: channel, expires_at: expires_at, mac: mac, action: action, current_time: PrivatePub.js_timestamp}
     end
 
     def valid?

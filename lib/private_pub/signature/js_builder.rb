@@ -21,18 +21,14 @@ module PrivatePub
         end
       end
 
-      private
+    private
 
       def build_initializer
         "var private_pub = new PrivatePub(#{PrivatePub.config[:server].to_json});"
       end
 
       def build_signature(signature)
-        "private_pub.sign(#{signature_hash(signature).to_json});"
-      end
-
-      def signature_hash(signature)
-        signature.to_hash.merge(current_time: PrivatePub.js_timestamp)
+        "private_pub.sign(#{signature.to_hash.to_json});"
       end
 
       def add_signatures(channels, action)

@@ -103,7 +103,7 @@
       })(),
 
       createFaye: function() {
-        return FayeBuilder(server, doc, { publish: self.getPublishSignature, subscribe: self.getSubscribeSignature }).build();
+        return FayeBuilder(server, doc, { publish: self.getPublishSignature.bind(self), subscribe: self.getSubscribeSignature.bind(self) }).build();
       },
 
       getSubscribeSignature: function(channel) {

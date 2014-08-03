@@ -131,15 +131,15 @@
         return Promise.reject(new Error('You must implement PrivatePub.generateSignature to get signature regeneration.'));
       },
 
-      sign: function(options) {
-        if (options.action === 'subscribe') {
-          self.subscriptions[options.channel] = options;
-        } else if(options.action === 'publish') {
-          self.publications[options.channel] = options;
+      sign: function(signature) {
+        if (signature.action === 'subscribe') {
+          self.subscriptions[signature.channel] = signature;
+        } else if(signature.action === 'publish') {
+          self.publications[signature.channel] = signature;
         } else {
           throw new Error('Action must be publish or subscribe');
         }
-        return options;
+        return signature;
       },
 
       publish: function(channel, data) {

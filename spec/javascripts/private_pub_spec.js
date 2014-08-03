@@ -25,7 +25,7 @@ describe("PrivatePub", function() {
       var options = { channel: 'somechannel', action: 'subscribe'};
       var opts = pub.sign(options);
 
-      expect(pub.subscriptions['somechannel']).toEqual(options);
+      expect(pub.signatures.subscribe['somechannel']).toEqual(options);
       expect(opts).toEqual(options);
     });
 
@@ -33,7 +33,7 @@ describe("PrivatePub", function() {
       var options = { channel: 'somechannel', action: 'publish'};
       var opts = pub.sign(options);
 
-      expect(pub.publications['somechannel']).toEqual(options);
+      expect(pub.signatures.publish['somechannel']).toEqual(options);
       expect(opts).toEqual(options);
 
     });
@@ -96,7 +96,7 @@ describe("PrivatePub", function() {
 
     it('gets signature when present and not expired', function(done) {
       var sig =  {signature: 'abcd', expires_at: Date.now() + 2000};
-      pub.subscriptions['hello'] = sig;
+      pub.signatures.subscribe['hello'] = sig;
       pub.getSubscribeSignature('hello').then(function(signature) {
         expect(signature).toEqual(sig);
         done();
@@ -113,7 +113,7 @@ describe("PrivatePub", function() {
 
       pub.getSubscribeSignature('hello').then(function(signature) {
         expect(signature).toEqual(sig);
-        expect(pub.subscriptions['/channel']).toEqual(sig);
+        expect(pub.signatures.subscribe['/channel']).toEqual(sig);
         done();
       }, function(error) {
         console.log(error, error.stack);

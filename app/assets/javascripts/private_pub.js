@@ -87,8 +87,10 @@
     if (!doc) { doc = document; }
 
     var self = {
-      subscriptions: {},
-      publications: {},
+      signatures: {
+        publish: {},
+        subscribe: {}
+      },
 
       faye: (function() {
         var fayePromise;
@@ -103,23 +105,26 @@
       })(),
 
       createFaye: function() {
-        return FayeBuilder(server, doc, { publish: self.getPublishSignature.bind(self), subscribe: self.getSubscribeSignature.bind(self) }).build();
+        return FayeBuilder(server, doc, { publish: self.getPublishSignature, subscribe: self.getSubscribeSignature }).build();
       },
 
       getSubscribeSignature: function(channel) {
-        return self.getSignature(self.subscriptions, channel, 'subscribe');
+        return self.getSignature(channel, 'subscribe');
       },
 
       getPublishSignature: function(channel) {
-        return self.getSignature(self.publications, channel, 'publish');
+        return self.getSignature(channel, 'publish');
       },
 
       // REVIEW: Possibly susceptible to race conditions
 
-      getSignature: function(object, channel, action) {
+      getSignature: function(channel, action) {
+        var object = self.signatures[action];
         var signature = object[channel];
 
         /* TODO: Make signature objects. */
+        /* FIXME: Signatures always seem to be expired! (This is confirmed to be because of clock synchronisation issues) */
+        /* TODO: Send current time with signatures to fix any clock synchronisation issues */
         if ( ( channel in object ) && ( parseInt(signature.expires_at, 10) > Date.now() ) ) {
           return Promise.resolve(signature);
         } else {
@@ -132,10 +137,8 @@
       },
 
       sign: function(signature) {
-        if (signature.action === 'subscribe') {
-          self.subscriptions[signature.channel] = signature;
-        } else if(signature.action === 'publish') {
-          self.publications[signature.channel] = signature;
+        if (signature.action === 'subscribe' || signature.action === 'publish') {
+          self.signatures[signature.action][signature.channel] = signature;
         } else {
           throw new Error('Action must be publish or subscribe');
         }

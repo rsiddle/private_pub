@@ -3,7 +3,7 @@ describe("PrivatePub.FayeBuilder", function() {
   beforeEach(function() {
     doc = {};
 
-    var signature = { signature: 'sig', expires_at: 123};
+    var signature = { mac: 'sig', expires_at: 123};
 
     signatures = {
       subscribe: function() {
@@ -73,7 +73,7 @@ describe("PrivatePub.FayeBuilder", function() {
     it('adds matching signature and timestamp with publications', function(done) {
       var message = { channel: '/channel' };
 
-      var signature = { signature: 'pub_sig', expires_at: 123}
+      var signature = { mac: 'pub_sig', expires_at: 123}
 
       spyOn(signatures, 'publish').and.returnValue(Promise.resolve(signature));
 
@@ -87,7 +87,7 @@ describe("PrivatePub.FayeBuilder", function() {
     it('adds matching signature and timestamp with subscriptions', function(done) {
       var message = { channel: '/meta/subscribe', subscription: '/channel' };
 
-      var signature = { signature: 'sub_sig', expires_at: 123}
+      var signature = { mac: 'sub_sig', expires_at: 123}
 
       spyOn(signatures, 'subscribe').and.returnValue(Promise.resolve(signature));
 

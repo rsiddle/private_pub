@@ -23,18 +23,26 @@ describe("PrivatePub", function() {
   describe('.sign', function() {
     it('adds subscription', function() {
       var options = { channel: 'somechannel', action: 'subscribe'};
-      var opts = pub.sign(options);
+      pub.sign(options);
 
-      expect(pub.signatures.subscribe['somechannel']).toEqual(options);
-      expect(opts).toEqual(options);
+      expect(pub.signatures.subscribe['somechannel']).toBeDefined();
     });
 
     it('adds publication', function() {
       var options = { channel: 'somechannel', action: 'publish'};
-      var opts = pub.sign(options);
+      pub.sign(options);
 
-      expect(pub.signatures.publish['somechannel']).toEqual(options);
-      expect(opts).toEqual(options);
+      expect(pub.signatures.publish['somechannel']).toBeDefined();
+    });
+
+    it('returns signature', function() {
+      var options = { channel: 'somechannel', action: 'publish', expires_at: 123, mac: 'mac'};
+      var signature = pub.sign(options);
+
+      expect(signature.channel).toEqual('somechannel');
+      expect(signature.action).toEqual('publish');
+      expect(signature.expires_at).toEqual(123);
+      expect(signature.mac).toEqual('mac');
 
     });
 
@@ -95,8 +103,8 @@ describe("PrivatePub", function() {
   describe('.getSubscribeSignature', function() {
 
     it('gets signature when present and not expired', function(done) {
-      var sig =  {signature: 'abcd', expires_at: Date.now() + 2000};
-      pub.signatures.subscribe['hello'] = sig;
+      var options =  {mac: 'abcd', expires_at: Date.now() + 2000, action: 'subscribe', channel: 'hello'};
+      var sig = pub.sign(options);
       pub.getSubscribeSignature('hello').then(function(signature) {
         expect(signature).toEqual(sig);
         done();
@@ -112,8 +120,8 @@ describe("PrivatePub", function() {
       spyOn(pub, 'generateSignature').and.returnValue(Promise.resolve(sig));
 
       pub.getSubscribeSignature('hello').then(function(signature) {
-        expect(signature).toEqual(sig);
-        expect(pub.signatures.subscribe['/channel']).toEqual(sig);
+        expect(signature.channel).toEqual('/channel');
+        expect(pub.signatures.subscribe['/channel']).toBeDefined();
         done();
       }, function(error) {
         console.log(error, error.stack);

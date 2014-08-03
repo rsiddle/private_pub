@@ -57,7 +57,7 @@
 
           function attachSignature(signature) {
             if (!message.ext) message.ext = {};
-            message.ext.private_pub_signature = signature.signature;
+            message.ext.private_pub_signature = signature.mac;
             message.ext.private_pub_expires_at = signature.expires_at;
 
             callback(message);
@@ -125,7 +125,7 @@
         /* TODO: Make signature objects. */
         /* FIXME: Signatures always seem to be expired! (This is confirmed to be because of clock synchronisation issues) */
         /* TODO: Send current time with signatures to fix any clock synchronisation issues */
-        if ( ( channel in object ) && ( parseInt(signature.expires_at, 10) > Date.now() ) ) {
+        if ( ( channel in object ) && !signature.has_expired() ) {
           return Promise.resolve(signature);
         } else {
           return self.generateSignature(channel, action).then(self.sign);
@@ -136,13 +136,26 @@
         return Promise.reject(new Error('You must implement PrivatePub.generateSignature to get signature regeneration.'));
       },
 
-      sign: function(signature) {
+      sign: function(options) {
+        var signature = self.buildSignature(options);
         if (signature.action === 'subscribe' || signature.action === 'publish') {
           self.signatures[signature.action][signature.channel] = signature;
         } else {
           throw new Error('Action must be publish or subscribe');
         }
         return signature;
+      },
+
+      buildSignature: function(options) {
+        return {
+          channel: options.channel,
+          expires_at: parseInt(options.expires_at, 10),
+          action: options.action,
+          mac: options.mac,
+          has_expired: function() {
+            return Date.now() > this.expires_at;
+          }
+        };
       },
 
       publish: function(channel, data) {

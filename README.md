@@ -151,6 +151,7 @@ This is a fork of the original private_pub by Ryan Baits
   This stops you committing your secret token to your git repository.
 * Changed to using HMAC for generating the signature, to prevent extension attacks.
 * Added token and signature methods for both subscribing and publishing
+* It no longer supports sending JS directly to be evalled on the client. Only communicating via JSON is supported.
 
 ## Development & Feedback
 

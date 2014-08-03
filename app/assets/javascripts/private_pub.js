@@ -6,7 +6,7 @@
   function FayeAdaptor(faye_client) {
     return {
 
-      publish: faye_client.publish,
+      publish: faye_client.publish.bind(faye_client),
 
       subscribe: function(channel, callback) {
         var faye_subscription = faye_client.subscribe(channel, function(message) {

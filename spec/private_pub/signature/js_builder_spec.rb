@@ -16,7 +16,7 @@ describe PrivatePub::Signature::JsBuilder do
 
     describe '#build' do
       it 'returns signatures' do
-        expect(builder.build).to match /var private_pub = new PrivatePub\("\/faye"\);(private_pub.sign\({.*?}\);){4}/
+        expect(builder.build).to match /var private_pub = PrivatePub\("\/faye"\);(private_pub.sign\({.*?}\);){4}/
       end
     end
   end
@@ -24,7 +24,7 @@ describe PrivatePub::Signature::JsBuilder do
   context 'without signatures' do
     describe '#build' do
       it 'just returns initializer' do
-        expect(builder.build).to eq('var private_pub = new PrivatePub("/faye");')
+        expect(builder.build).to eq('var private_pub = PrivatePub("/faye");')
       end
     end
   end

@@ -22,7 +22,7 @@ module PrivatePub
     private
 
       def build_initializer
-        "var private_pub = new PrivatePub(#{PrivatePub.config[:server].to_json});"
+        "var private_pub = PrivatePub(#{PrivatePub.config[:server].to_json});"
       end
 
       def build_signature(signature)

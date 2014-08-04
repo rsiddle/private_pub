@@ -16,9 +16,7 @@ module PrivatePub
       end
 
       def build
-        @signatures.inject(build_initializer) do |string, signature|
-          string + build_signature(signature)
-        end
+        @signatures.map(&method(:build_signature)).inject(build_initializer, :+)
       end
 
     private

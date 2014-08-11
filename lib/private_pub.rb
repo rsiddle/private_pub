@@ -43,6 +43,7 @@ module PrivatePub
       end
     end
 
+    # TODO: Remove this method in favour of using Faye::Client
     # Publish the given data to a specific channel. This ends up sending
     # a Net::HTTP POST request to the Faye server.
     def publish_to(channel, data)
@@ -70,11 +71,6 @@ module PrivatePub
     def generate_signature(channel, timestamp, action)
       digest = OpenSSL::Digest.new('sha1')
       OpenSSL::HMAC.hexdigest(digest, config[:secret_token], [channel, timestamp, action].join)
-    end
-
-    # Determine if the signature has expired given a timestamp.
-    def signature_expired?(timestamp)
-      timestamp >= js_timestamp
     end
 
     def js_timestamp(time=Time.now)

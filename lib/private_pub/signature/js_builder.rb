@@ -16,14 +16,18 @@ module PrivatePub
       end
 
       def build
-        @signatures.map(&method(:build_signature)).inject(build_initializer, :+)
+        build_initializer + build_signatures
       end
 
-    private
+      def build_signatures
+        @signatures.map(&method(:build_signature)).inject('', :+)
+      end
 
       def build_initializer
         "var private_pub = PrivatePub(#{PrivatePub.config[:server].to_json});"
       end
+
+    private
 
       def build_signature(signature)
         "private_pub.sign(#{signature.to_hash.to_json});"

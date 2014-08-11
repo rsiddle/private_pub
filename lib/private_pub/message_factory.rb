@@ -8,7 +8,7 @@ module PrivatePub
     end
 
     def create
-      message = Message.new(@message).tap do |message|
+      Message.new(@message).tap do |message|
         if is_subscription?
           message.extend(Message::Subscribe)
         elsif is_publication?
